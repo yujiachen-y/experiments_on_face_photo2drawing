@@ -10,6 +10,7 @@
 ## 文件结构
 - OriginalImages：目录下是各个人名的子目录，每个人名子目录下C开头的照片是卡通画像，P开头的是真实照片
 - FacialPoints：以txt的形式存着每张照片的landmark，每个landmark点两个数字，前面代表着x轴坐标，后面代表着y轴坐标 **（如何标记这些点？实际上访问矩阵的时候是不是先访问y再访问x？）**，landmark的格式如下
+
 ![landmarks_description](https://cs.nju.edu.cn/rl/Caricature_files/example/Landmarks_black.jpg)
 
 | Landmark | Meaning | Landmark | Meaning |
@@ -91,15 +92,44 @@ where 'X' ranges from 1 to 10, corresponding to 10 folds. A "FR_TrainX.txt" cont
 2. 请不要重新布置或修改数据集
 3. 如您有漏洞报告，或关于使用数据集的疑问或建议，请联系Jing Huo (huojing@nju.edu.cn)
 
-## 参考
-[1] Jing Huo, Wenbin Li, Yinghuan Shi, Yang Gao and Hujun Yin, "WebCaricature: A Benchmark for Caricature Recognition", British Machine Vision Conference, 2018.
-[2] Jing Huo, Yang Gao, Yinghuan Shi, Hujun Yin, "Variation Robust Cross-Modal Metric Learning for Caricature Recognition", ACM Multimedia Thematic Workshops, 2017: 340-348.
-
 # WebCaricature: a benchmark for caricature recognition
 ## 对论文的小结
+参考的论文是[1]的v4版本
 
+### 介绍
 论文提到了现有的几个数据集：
 ![](reports\elements\existing_datasets_relating_to_caricature.png)
 
+### 数据采集
+- 数据的收集是通过google image搜索得来的
 - 照片的landmark是用face++的api标的
-- 画像的landmark是手工标的，没说怎么具体标记的
+- **画像的landmark是手工标的，但文章没说标记的具体流程和消耗的资源**
+
+### 评价方案
+- 文章说明了使用数据集时，哪些数据可以用在哪些步骤中
+- 文章建议Caricature Verification任务的评测指标是ROC的AUC、FAR=0.1%时的验证正确率和FAR=1%时的验证正确率
+- 文章建议Caricature Identification任务的评测指标是CMC中的rank-1和rank-10
+- 文章建议的评测方法是用10-fold的交叉验证，对10次得到的最终结果取平均得到最终评测结果
+- **文章没有给出制定上述评价方案的依据**，自己读完了论文之后，感觉数据集对我仍像黑盒一样未知
+
+### 识别框架
+#### landmark标记
+画像是用手工标记的，落实到框架里如何标记目前没有解决方案，**自己感觉画像的landmark标记可以单独作为一个课题拿出来做**
+
+#### 脸部对齐
+文章采用了三个方案，具体的操作和参数见论文
+1 根据两个眼睛的关键点位置来完成alignment（根据[3]里面的实验结果，自己打算用5个或者3个landmark做相似变换来align）
+2 根据17个landmark的位置得到17个patch，从17个patch中抽取特征
+3 根据脸外围的4个轮廓点，把脸裁出来
+
+#### 匹配算法
+作者多次提到了自己的跨模态尺度学习方法[2]，有空看一看。不过我们的工作是图像翻译相关的，所以可能帮助不会很大。
+
+## Balseline表现
+具体数据见原文。
+文中说到了第2中脸部对齐方法在传统模型里的表现最好，但是不适合应用在深度学习里，所以就没做相关实验，但是文中后面明确说了实验没有fine tune vgg face，而是直接用的vgg face的原参数，我觉得是论文作者不想花时间重新训一个模型所以没有验证第2个方法的表现。
+
+# 参考
+[1] Jing Huo, Wenbin Li, Yinghuan Shi, Yang Gao and Hujun Yin, "WebCaricature: A Benchmark for Caricature Recognition", British Machine Vision Conference, 2018.
+[2] Jing Huo, Yang Gao, Yinghuan Shi, Hujun Yin, "Variation Robust Cross-Modal Metric Learning for Caricature Recognition", ACM Multimedia Thematic Workshops, 2017: 340-348.
+[3] Demystifying Face Recognition IV: Face-Alignment[EB/OL]. BLCV - Bartosz Ludwiczuk Computer Vision, 2018. (2018)[2018 -10 -01]. http://blcv.pl/static/2017/12/28/demystifying-face-recognition-iii-face-preprocessing/index.html.
