@@ -1,0 +1,7 @@
+{% include 'datasetviewer/header.html' %}
+
+<ul>
+{% for dataset in datasets %}
+    <li><a href="{{ dataset }}">{{ dataset }}</a></li>
+{% endfor %}
+</ul>
