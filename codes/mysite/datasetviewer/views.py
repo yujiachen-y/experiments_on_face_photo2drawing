@@ -1,13 +1,14 @@
 import os
 
+from django.http import HttpResponse
 from django.shortcuts import render
 
 try:
     from . import config
-    from .utils import get_dir, get_overview_from_memory
+    from .utils import get_dirs, get_overview, get_image
 except ImportError:
     import config
-    from utils import get_dir
+    from utils import get_dirs, get_overview, get_image
 
 # Create your views here.
 def index(request):
@@ -15,32 +16,56 @@ def index(request):
     return render(request, 'datasetviewer/index.html', {'datasets': datasets})
 
 
-def overview(request, dataset_name):
-    original_images_dir = os.path.join(config.WC_datasets_dir,\
-        dataset_name, config.WC_original_images_dir_name)
-    if not os.path.exists(original_images_dir):
+def overview(request, dataset_name, show_landmarks=1):
+    try:
+        (images_dir, filenames_dir, landmarks_dir), messages = get_dirs(dataset_name)
+    except Exception as e:
         return render(request, 'datasetviewer/error.html', {
-            "error_message": "path: %s doesn't exist" % original_images_dir,
-        })
-    
-    filenames_dir, fd_message = get_dir(dataset_name, config.WC_filenames_dir_name)
-    if filenames_dir is None:
-        return render(request, 'datasetviewer/error.html', {
-            'error_message': fd_message,
+            'error_message': e.args[0],
         })
 
-    landmarks_dir, ld_message = get_dir(dataset_name, config.WC_landmarks_dir_name)
-    if landmarks_dir is None:
-        return render(request, 'datasetviewer/error.html', {
-            'error_message': ld_message,
-        })
-
-    people_names, image_names = get_overview_from_memory(dataset_name, filenames_dir, landmarks_dir)
+    people_names, image_names, landmarks = get_overview(images_dir, filenames_dir, landmarks_dir)
+    # from IPython import embed; embed()
 
     return render(request, 'datasetviewer/overview.html', {
-        'messages': [fd_message, ld_message],
+        'messages': messages,
+        'dataset_name': dataset_name,
         'people_names': people_names,
+        'show_landmarks': show_landmarks,
     })
+
+
+def detail(request, dataset_name, people_name, show_landmarks=1):
+    try:
+        (images_dir, filenames_dir, landmarks_dir), messages = get_dirs(dataset_name)
+    except Exception as e:
+        return render(request, 'datasetviewer/error.html', {
+            'error_message': e.args[0],
+        })
+
+    people_names, image_names, landmarks = get_overview(images_dir, filenames_dir, landmarks_dir)
+
+    return render(request, 'datasetviewer/detail.html', {
+        'messages': messages,
+        'dataset_name': dataset_name,
+        'people_name': people_name,
+        'show_landmarks': show_landmarks,
+        'image_names': image_names[people_name],
+    })
+
+
+def view_image(request, dataset_name, people_name, image_name, show_landmarks=1):
+    try:
+        (images_dir, filenames_dir, landmarks_dir), messages = get_dirs(dataset_name)
+    except Exception as e:
+        return render(request, 'datasetviewer/error.html', {
+            'error_message': e.args[0],
+        })
+
+    image = get_image(images_dir, filenames_dir, landmarks_dir,\
+                      people_name, image_name, show_landmarks)
+
+    return HttpResponse(image, content_type="image/jpg")
 
 
 if __name__ == '__main__':

@@ -1,0 +1,55 @@
+{% include 'datasetviewer/header.html' %}
+
+{% for message in messages %}
+    {% if message %} <p>{{ message }}</p> {% endif %}
+{% endfor %}
+
+<a href="{% url 'datasetviewer:detail' 0 dataset_name people_name %}">disable landmark</a><br>
+<a href="{% url 'datasetviewer:detail' 1 dataset_name people_name %}">enable landmark</a><br>
+<br>
+
+.red{
+    width: 100%;
+    height: 30px;
+    border: 1px solid red;
+}
+.blue{
+    width: 100%;
+    height: 30px;
+    border: 1px solid blue;
+}
+.clearfix:after{
+    position: relative;
+    content: '';
+    display: block;
+    width: 0;
+    height: 0;
+    visibility: hidden;
+    clear: both;
+}
+li img {
+    position: relative;
+    width: 256px;
+    top: 256px;/*li高度的一半*/
+    transform: translateY(-50%); /*再向上移动自身的50%*/
+}
+
+<div>
+    <p>caricatures</p><br>
+    <div class="red"></div>
+    <ul class="clearfix">
+    {% for image_name in image_names.c %}
+        <li><a href="{% url 'datasetviewer:view_image' show_landmarks dataset_name people_name image_name %}"><img src="{% url 'datasetviewer:view_image' show_landmarks dataset_name people_name image_name %}"></a></li>
+    {% endfor %}
+    </ul>
+    <div class="blue"></div>
+</div>
+
+<div style="float:left; clear:left">
+    <p>photos</p><br>
+    {% for image_name in image_names.p %}
+        <div >
+            <a href="{% url 'datasetviewer:view_image' show_landmarks dataset_name people_name image_name %}"><img src="{% url 'datasetviewer:view_image' show_landmarks dataset_name people_name image_name %}"></a>
+        </div>
+    {% endfor %}
+</div>

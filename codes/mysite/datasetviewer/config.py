@@ -1,10 +1,13 @@
 import os
 
-# memory dict
-_memory = {}
+# cache setting
+cache_size = None
 
 # datasets
 datasets_dir = os.path.join('C:\\Users\\yjc56\\Documents\\_My_Self\\datasets')
+
+# datasetviewer
+datasetviewer_dir_name = '.datasetviewer'
 
 # WebCaricature datasets
 WC_datasets_dir = os.path.join(datasets_dir, 'WebCaricature')

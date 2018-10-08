@@ -3,3 +3,13 @@
 {% for message in messages %}
     {% if message %} <p>{{ message }}</p> {% endif %}
 {% endfor %}
+
+<a href="{% url 'datasetviewer:overview' 0 dataset_name %}">disable landmark</a><br>
+<a href="{% url 'datasetviewer:overview' 1 dataset_name %}">enable landmark</a><br>
+<br>
+
+{% for people_name in people_names %}
+    <div style="float:left; clear:both;">
+        <a href="{% url 'datasetviewer:detail' show_landmarks dataset_name people_name %}">{{ people_name }}</a>
+    </div>
+{% endfor %}
