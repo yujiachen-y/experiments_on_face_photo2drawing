@@ -30,7 +30,8 @@ def overview(request, dataset_name, show_landmarks=1):
     return render(request, 'datasetviewer/overview.html', {
         'messages': messages,
         'dataset_name': dataset_name,
-        'people_names': people_names,
+        # 'people_names': people_names,
+        'timage_names': [(people_name, image_names[people_name]) for people_name in people_names],
         'show_landmarks': show_landmarks,
     })
 

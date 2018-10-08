@@ -8,8 +8,81 @@
 <a href="{% url 'datasetviewer:overview' 1 dataset_name %}">enable landmark</a><br>
 <br>
 
-{% for people_name in people_names %}
-    <div style="float:left; clear:both;">
+<style>
+    *{
+        margin: 0;
+        padding: 0;
+    }
+.red{
+    width: 100%;
+    height: 30px;
+    border: 1px solid red;
+}
+.blue{
+    width: 100%;
+    height: 30px;
+    border: 1px solid blue;
+}
+.clearfix:after{
+    position: relative;
+    content: '';
+    display: block;
+    width: 0;
+    height: 0;
+    visibility: hidden;
+    clear: both;
+}
+li {
+    list-style: none;
+    float: left;
+    width: 10%;/*三列图片排列*/
+    height: 128px;/*当图片尺寸不一的时候，设置一个高度*/
+    overflow: hidden;/*超出隐藏*/
+}
+li img {
+    position: relative;
+    width: 100%;
+    top: 50%;/*li高度的一半*/
+    transform: translateY(-50%);
+}
+.clearfix:after {
+  visibility: hidden;
+  display: block;
+  font-size: 0;
+  content: " ";
+  clear: both;
+  height: 0;
+}
+.container{
+    width: 60%;
+    margin: 0 auto;
+}
+</style>
+
+{% for people_name, image_names in timage_names %}
+    <!-- <div style="float:left; clear:both;"> -->
         <a href="{% url 'datasetviewer:detail' show_landmarks dataset_name people_name %}">{{ people_name }}</a>
-    </div>
+        <div class="container"> 
+            <ul class="clearfix">
+                {% for image_name in image_names.c %}
+                <li>
+                    <a href="{% url 'datasetviewer:view_image' show_landmarks dataset_name people_name image_name %}" target="_blank">
+                        <img src="{% url 'datasetviewer:view_image' show_landmarks dataset_name people_name image_name %}">
+                    </a>
+                </li>    
+                {% endfor %}
+            </ul>
+        </div>
+        <div class="container"> 
+            <ul class="clearfix"> 
+                {% for image_name in image_names.p %}
+                <li>
+                    <a href="{% url 'datasetviewer:view_image' show_landmarks dataset_name people_name image_name %}" target="_blank">
+                        <img src="{% url 'datasetviewer:view_image' show_landmarks dataset_name people_name image_name %}">
+                    </a>
+                </li>    
+                {% endfor %}
+            </ul>
+        </div>
+    <!-- </div> -->
 {% endfor %}
