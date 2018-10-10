@@ -129,7 +129,50 @@ where 'X' ranges from 1 to 10, corresponding to 10 folds. A "FR_TrainX.txt" cont
 具体数据见原文。
 文中说到了第2中脸部对齐方法在传统模型里的表现最好，但是不适合应用在深度学习里，所以就没做相关实验，但是文中后面明确说了实验没有fine tune vgg face，而是直接用的vgg face的原参数，我觉得是论文作者不想花时间重新训一个模型所以没有验证第2个方法的表现。
 
+# 数据集复筛
+## 大角度数据筛选
+模型初步并不打算处理较难的数据，所以先删去大角度数据，先根据参考[4]中的方法和参考[5]和[6]中的3-D人脸模型估算出每张图片中人脸的欧拉角度(pitch, yaw, roll)，考虑到欧拉角度的估计要尽量不被人的表情所影响，所以选取了6个landmark：[Left corner of left eye, Right corner of left eye, Left corner of right eye, Right corner of right eye, Nose tip, Contour(Chin)]。
+
+## 错误数据
+### 类别错误
+- Adele_Laurie_Blue_Adkins/C00001
+
+- Alfred_Hitchcock/C00045
+
+- Amanda_Seyfried/C00018
+- Amanda_Seyfried/C00027
+
+- Ann_Hathaway/C00018
+- Ann_Hathaway/C00021
+- Ann_Hathaway/C00043
+- Ann_Hathaway/C00046
+
+## 易混淆数据
+- Adele_Laurie_Blue_Adkins/C00015
+- Adele_Laurie_Blue_Adkins/C00022
+- Adele_Laurie_Blue_Adkins/C00024
+- Adele_Laurie_Blue_Adkins/C00039
+
+- Alan_Rickman/C00005
+
+- Alfred_Hitchcock/C00008
+- Alfred_Hitchcock/C00077
+- Alfred_Hitchcock/C00089
+- Alfred_Hitchcock/C00091
+
+- Amy_Winehouse/C00001
+- Amy_Winehouse/C00016
+
+- Ann_Hathaway/C00029
+
+## 误导性数据
+- Alfred_Hitchcock/C00017
+- Ann_Hathaway/C00009
+
 # 参考
 [1] Jing Huo, Wenbin Li, Yinghuan Shi, Yang Gao and Hujun Yin, "WebCaricature: A Benchmark for Caricature Recognition", British Machine Vision Conference, 2018.
 [2] Jing Huo, Yang Gao, Yinghuan Shi, Hujun Yin, "Variation Robust Cross-Modal Metric Learning for Caricature Recognition", ACM Multimedia Thematic Workshops, 2017: 340-348.
 [3] Demystifying Face Recognition IV: Face-Alignment[EB/OL]. BLCV - Bartosz Ludwiczuk Computer Vision, 2018. (2018)[2018 -10 -01]. http://blcv.pl/static/2017/12/28/demystifying-face-recognition-iii-face-preprocessing/index.html.
+[4] 基于Dlib和OpenCV的人脸姿态估计(HeadPoseEstimation) - 二极管具有单向导电性 - CSDN博客[EB/OL]. Blog.csdn.net, 2018. (2018)[2018 -10 -10]. https://blog.csdn.net/u013512448/article/details/77804161.
+[5] T. Bolkart, S. Wuhrer, 3D Faces in Motion: Fully Automatic Registration and Statistical Analysis, Computer Vision and Image Understanding, 131:100–115, 2015
+[6] T. Bolkart, S. Wuhrer, Statistical Analysis of 3D Faces in Motion, 3D Vision, 2013, pages 103-110
