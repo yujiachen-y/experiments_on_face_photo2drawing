@@ -4,7 +4,7 @@ import os
 cache_size = None
 
 # datasets
-datasets_dir = os.path.join('C:\\Users\\yjc56\\Documents\\_My_Self\\datasets')
+datasets_dir = os.path.join('C:\\Users\\yjc56\\Documents\\_My_Self\\学习\\2018下\\graduation_project\\datasets\\')
 
 # datasetviewer
 datasetviewer_dir_name = '.datasetviewer'

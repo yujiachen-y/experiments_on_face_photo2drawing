@@ -3,12 +3,8 @@ import os
 from django.http import HttpResponse
 from django.shortcuts import render
 
-try:
-    from . import config
-    from .utils import get_dirs, get_overview, get_image
-except ImportError:
-    import config
-    from utils import get_dirs, get_overview, get_image
+from . import config
+from .utils import get_dirs, get_overview, get_image, get_pose
 
 # Create your views here.
 def return_an_error_page_if_DirNotFindError(func):
@@ -29,7 +25,7 @@ def index(request):
 
 
 @return_an_error_page_if_DirNotFindError
-def overview(request, dataset_name, show_landmarks=1):
+def overview(request, dataset_name, show_landmark=1):
     (images_dir, filenames_dir, landmarks_dir), messages = get_dirs(dataset_name)
 
     people_names, image_names, landmarks = get_overview(images_dir, filenames_dir, landmarks_dir)
@@ -39,12 +35,12 @@ def overview(request, dataset_name, show_landmarks=1):
         'messages': messages,
         'dataset_name': dataset_name,
         'people_names_and_image_names': [(people_name, image_names[people_name]) for people_name in people_names],
-        'show_landmarks': show_landmarks,
+        'show_landmark': show_landmark,
     })
 
 
 @return_an_error_page_if_DirNotFindError
-def detail(request, dataset_name, people_name, show_landmarks=1):
+def detail(request, dataset_name, people_name, show_landmark=1):
     (images_dir, filenames_dir, landmarks_dir), messages = get_dirs(dataset_name)
 
     people_names, image_names, landmarks = get_overview(images_dir, filenames_dir, landmarks_dir)
@@ -53,16 +49,22 @@ def detail(request, dataset_name, people_name, show_landmarks=1):
         'messages': messages,
         'dataset_name': dataset_name,
         'people_name': people_name,
-        'show_landmarks': show_landmarks,
+        'show_landmark': show_landmark,
         'image_names': image_names[people_name],
     })
 
 
 @return_an_error_page_if_DirNotFindError
-def view_image(request, dataset_name, people_name, image_name, show_landmarks=1):
-    image = get_image(dataset_name, people_name, image_name, show_landmarks)
+def view_image(request, dataset_name, people_name, image_name, show_landmark=1):
+    image = get_image(dataset_name, people_name, image_name, show_landmark)
 
     return HttpResponse(image, content_type="image/jpg")
+
+
+@return_an_error_page_if_DirNotFindError
+def view_pose(request, dataset_name, people_name, image_name):
+    pose = get_pose(dataset_name, people_name, image_name)
+    return HttpResponse(', '.join(map(str, map(int, pose))))
 
 
 if __name__ == '__main__':

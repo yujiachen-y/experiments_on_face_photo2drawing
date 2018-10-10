@@ -61,13 +61,13 @@ li img {
 
 {% for people_name, image_names in people_names_and_image_names %}
     <!-- <div style="float:left; clear:both;"> -->
-        <a href="{% url 'datasetviewer:detail' show_landmarks dataset_name people_name %}">{{ people_name }}</a>
+        <a href="{% url 'datasetviewer:detail' show_landmark dataset_name people_name %}">{{ people_name }}</a>
         <div class="container"> 
             <ul class="clearfix">
                 {% for image_name in image_names.c %}
                 <li>
-                    <a href="{% url 'datasetviewer:view_image' show_landmarks dataset_name people_name image_name %}" target="_blank">
-                        <img src="{% url 'datasetviewer:view_image' show_landmarks dataset_name people_name image_name %}">
+                    <a href="{% url 'datasetviewer:view_image' show_landmark dataset_name people_name image_name %}" target="_blank">
+                        <img src="{% url 'datasetviewer:view_image' show_landmark dataset_name people_name image_name %}">
                     </a>
                 </li>    
                 {% endfor %}
@@ -77,8 +77,8 @@ li img {
             <ul class="clearfix"> 
                 {% for image_name in image_names.p %}
                 <li>
-                    <a href="{% url 'datasetviewer:view_image' show_landmarks dataset_name people_name image_name %}" target="_blank">
-                        <img src="{% url 'datasetviewer:view_image' show_landmarks dataset_name people_name image_name %}">
+                    <a href="{% url 'datasetviewer:view_image' show_landmark dataset_name people_name image_name %}" target="_blank">
+                        <img src="{% url 'datasetviewer:view_image' show_landmark dataset_name people_name image_name %}">
                     </a>
                 </li>    
                 {% endfor %}

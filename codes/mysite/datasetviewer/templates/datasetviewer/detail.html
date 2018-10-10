@@ -36,7 +36,7 @@ li {
     list-style: none;
     float: left;
     width: 20%;/*三列图片排列*/
-    height: 256px;/*当图片尺寸不一的时候，设置一个高度*/
+    height: 469px;/*当图片尺寸不一的时候，设置一个高度*/
     overflow: hidden;/*超出隐藏*/
 }
 li img {
@@ -64,9 +64,15 @@ li img {
     <ul class="clearfix"> 
         {% for image_name in image_names.c %}
         <li>
-            <a href="{% url 'datasetviewer:view_image' show_landmarks dataset_name people_name image_name %}" target="_blank">
-                <img src="{% url 'datasetviewer:view_image' show_landmarks dataset_name people_name image_name %}">
-            </a>
+            
+                <a href="{% url 'datasetviewer:view_image' show_landmark dataset_name people_name image_name %}" target="_blank">
+                    <img src="{% url 'datasetviewer:view_image' show_landmark dataset_name people_name image_name %}">
+                </a>    
+            
+            
+                 <p>{% url 'datasetviewer:view_pose' dataset_name people_name image_name %}</p>
+            
+            
         </li>    
         {% endfor %}
     </ul>
@@ -76,8 +82,8 @@ li img {
     <ul class="clearfix"> 
         {% for image_name in image_names.p %}
         <li>
-            <a href="{% url 'datasetviewer:view_image' show_landmarks dataset_name people_name image_name %}" target="_blank">
-                <img src="{% url 'datasetviewer:view_image' show_landmarks dataset_name people_name image_name %}">
+            <a href="{% url 'datasetviewer:view_image' show_landmark dataset_name people_name image_name %}" target="_blank">
+                <img src="{% url 'datasetviewer:view_image' show_landmark dataset_name people_name image_name %}">
             </a>
         </li>    
         {% endfor %}

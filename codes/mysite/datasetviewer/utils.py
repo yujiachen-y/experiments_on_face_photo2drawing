@@ -2,10 +2,8 @@ import os
 from functools import lru_cache
 from tqdm import tqdm
 
-try:
-    from . import config
-except ImportError:
-    import config
+from . import config
+from .pose_estimation import pose_estimation
 
 
 def get_dirs(dataset_name):
@@ -48,8 +46,8 @@ def get_overview(images_dir, filenames_dir, landmarks_dir):
     '''
     params: images_dir, filenames_dir, landmarks_dir
     return: people_names: [people_name],
-            image_names: {people_name: {'c' and 'p': filename}},
-            landmarks: {filename: landmark}
+            image_names: {people_name: {'c' and 'p': [filename]}},
+            landmarks: {people_name: {filename: landmark}}
     '''
     def get_filenames(filenames_dir, people_name):
         '''
@@ -57,14 +55,20 @@ def get_overview(images_dir, filenames_dir, landmarks_dir):
         return a dict which keys are ('c', 'p',) and values are list of image number like 'C00001'
         '''
         people_name = people_name.replace('_', ' ')
-        return {
-            'c': [os.path.splitext(filename.strip())[0]\
-                for filename in\
-                open(os.path.join(filenames_dir, people_name, config.WC_c_filename)).readlines()],
-            'p': [os.path.splitext(filename.strip())[0]\
-                for filename in\
-                open(os.path.join(filenames_dir, people_name, config.WC_p_filename)).readlines()]
-        }
+        result = {}
+        for image_type in ('c', 'p',):
+            if image_type == 'c':
+                filename_path = config.WC_c_filename
+            elif image_type == 'p':
+                filename_path = config.WC_p_filename
+            filename_path = os.path.join(filenames_dir, people_name, filename_path)
+            if os.path.exists(filename_path):
+                with open(filename_path) as f:
+                    filenames = [os.path.splitext(filename.strip())[0] for filename in f.readlines()]
+            else:
+                filenames = []
+            result[image_type] = filenames
+        return result
 
     def load_landmark_file(landmarks_dir, people_name, image_name):
         '''
@@ -93,9 +97,9 @@ def get_overview(images_dir, filenames_dir, landmarks_dir):
 
 
 @lru_cache(maxsize=config.cache_size)
-def get_image(dataset_name, people_name, image_name, show_landmarks=1):
+def get_image(dataset_name, people_name, image_name, show_landmark=1):
     '''
-    return a jpg image buffer based on people_name, image_name and show_landmarks
+    return a jpg image buffer based on people_name, image_name and show_landmark
     '''
     def genarate_landmark_image(src, dst, lamdmark):
         import cv2, numpy as np
@@ -114,7 +118,7 @@ def get_image(dataset_name, people_name, image_name, show_landmarks=1):
     image_name += '.jpg'
     image_path = os.path.join(images_dir, people_name, image_name)
 
-    if int(show_landmarks) == 1:
+    if int(show_landmark) == 1:
         ld_images_dir = os.path.join(images_dir, config.datasetviewer_dir_name, people_name)
         os.makedirs(ld_images_dir, exist_ok=True)
 
@@ -124,3 +128,16 @@ def get_image(dataset_name, people_name, image_name, show_landmarks=1):
         image_path = ld_images_path
 
     return open(image_path, 'rb').read()
+
+
+@lru_cache(maxsize=config.cache_size)
+def get_pose(dataset_name, people_name, image_name):
+    '''
+    return (pitch, yaw, roll) to represent face's pose
+    '''
+    (images_dir, filenames_dir, landmarks_dir), messages = get_dirs(dataset_name)
+    people_names, image_names, landmarks = get_overview(images_dir, filenames_dir, landmarks_dir)
+
+    image = get_image(dataset_name, people_name, image_name, show_landmark=0)
+    landmark = landmarks[people_name][image_name]
+    return pose_estimation(image, landmark)
