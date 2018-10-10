@@ -59,7 +59,7 @@ li img {
 }
 </style>
 
-{% for people_name, image_names in timage_names %}
+{% for people_name, image_names in people_names_and_image_names %}
     <!-- <div style="float:left; clear:both;"> -->
         <a href="{% url 'datasetviewer:detail' show_landmarks dataset_name people_name %}">{{ people_name }}</a>
         <div class="container"> 

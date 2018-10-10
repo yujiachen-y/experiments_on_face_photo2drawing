@@ -19,3 +19,7 @@ WC_original_images_dir_name = 'OriginalImages'
 
 WC_c_filename = 'file_c.txt'
 WC_p_filename = 'file_p.txt'
+
+# useful classes
+class DirNotFindError(RuntimeError):
+    pass

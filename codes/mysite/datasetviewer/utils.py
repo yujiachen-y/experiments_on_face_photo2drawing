@@ -9,6 +9,12 @@ except ImportError:
 
 
 def get_dirs(dataset_name):
+    '''
+    give a dataset_name, and return
+    (images_dir, filenames_dir, landmarks_dir),
+    (fd_message, ld_message)
+    or raise an Exception
+    '''
     def get_dir(dataset_name, dir_name):
         result_dir = os.path.join(config.WC_datasets_dir,\
             dataset_name, dir_name)
@@ -20,27 +26,31 @@ def get_dirs(dataset_name):
             result_dir = tmp_result_dir
             if not os.path.exists(tmp_result_dir):
                 result_message = "path: %s doesn't exist" % tmp_result_dir
+                result_dir = None
         return result_dir, result_message
 
-    original_images_dir = os.path.join(config.WC_datasets_dir,\
-        dataset_name, config.WC_original_images_dir_name)
-    if not os.path.exists(original_images_dir):
-        raise Exception("path: %s doesn't exist" % original_images_dir)
-    
+    images_dir, id_message = get_dir(dataset_name, config.WC_original_images_dir_name)
     filenames_dir, fd_message = get_dir(dataset_name, config.WC_filenames_dir_name)
-    if filenames_dir is None:
-        raise Exception(fd_message)
-
     landmarks_dir, ld_message = get_dir(dataset_name, config.WC_landmarks_dir_name)
-    if landmarks_dir is None:
-        raise Exception(ld_message)
 
-    return (original_images_dir, filenames_dir, landmarks_dir),\
-           (fd_message, ld_message)
+    dirs = (images_dir, filenames_dir, landmarks_dir)
+    messages = (id_message, fd_message, ld_message)
+
+    for dir, message in zip(dirs, messages):
+        if dir is None:
+            raise config.DirNotFindError(message)
+
+    return dirs, messages
 
 
 @lru_cache(maxsize=config.cache_size)
 def get_overview(images_dir, filenames_dir, landmarks_dir):
+    '''
+    params: images_dir, filenames_dir, landmarks_dir
+    return: people_names: [people_name],
+            image_names: {people_name: {'c' and 'p': filename}},
+            landmarks: {filename: landmark}
+    '''
     def get_filenames(filenames_dir, people_name):
         '''
         get a people's filenames from a filenames_dir
@@ -83,8 +93,10 @@ def get_overview(images_dir, filenames_dir, landmarks_dir):
 
 
 @lru_cache(maxsize=config.cache_size)
-def get_image(images_dir, filenames_dir, landmarks_dir,\
-              people_name, image_name, show_landmarks=1):
+def get_image(dataset_name, people_name, image_name, show_landmarks=1):
+    '''
+    return a jpg image buffer based on people_name, image_name and show_landmarks
+    '''
     def genarate_landmark_image(src, dst, lamdmark):
         import cv2, numpy as np
 
@@ -94,6 +106,7 @@ def get_image(images_dir, filenames_dir, landmarks_dir,\
             image[y-5:y+5, x-5:x+5, :] = np.array([0, 100, 0])
         cv2.imwrite(dst, image)
 
+    (images_dir, filenames_dir, landmarks_dir), messages = get_dirs(dataset_name)
     people_names, image_names, landmarks = get_overview(images_dir, filenames_dir, landmarks_dir)
     
     landmark = landmarks[people_name][image_name]
