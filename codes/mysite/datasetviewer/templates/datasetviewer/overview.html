@@ -1,7 +1,7 @@
 {% include 'datasetviewer/header.html' %}
 
 {% for message in messages %}
-    {% if message %} <p>{{ message }}</p> {% endif %}
+    {% if message %} <br><p>{{ message }}</p><br> {% endif %}
 {% endfor %}
 
 <a href="{% url 'datasetviewer:overview' 0 dataset_name %}">disable landmark</a><br>
