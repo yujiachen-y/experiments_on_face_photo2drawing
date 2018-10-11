@@ -1,9 +1,9 @@
 import os
 from functools import lru_cache
+
 from tqdm import tqdm
 
 from . import config
-from .pose_estimation import pose_estimation
 
 
 def get_dirs(dataset_name):
@@ -67,6 +67,7 @@ def get_overview(images_dir, filenames_dir, landmarks_dir):
                     filenames = [os.path.splitext(filename.strip())[0] for filename in f.readlines()]
             else:
                 filenames = []
+            filenames = [filename for filename in filenames if not filename == '']
             result[image_type] = filenames
         return result
 
@@ -135,9 +136,21 @@ def get_pose(dataset_name, people_name, image_name):
     '''
     return (pitch, yaw, roll) to represent face's pose
     '''
+    from .pose_estimation import pose_estimation
+
     (images_dir, filenames_dir, landmarks_dir), messages = get_dirs(dataset_name)
     people_names, image_names, landmarks = get_overview(images_dir, filenames_dir, landmarks_dir)
 
     image = get_image(dataset_name, people_name, image_name, show_landmark=0)
     landmark = landmarks[people_name][image_name]
     return pose_estimation(image, landmark)
+
+
+def dataset_iterator(dataset_name):
+    (images_dir, filenames_dir, landmarks_dir), messages = get_dirs(dataset_name)
+    people_names, image_names, landmarks = get_overview(images_dir, filenames_dir, landmarks_dir)
+
+    for people_name in people_names:
+        for image_type in ('c', 'p',):
+            for image_name in image_names[people_name][image_type]:
+                yield people_name, image_type, image_name, landmarks[people_name][image_name]
