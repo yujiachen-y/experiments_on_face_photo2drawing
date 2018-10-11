@@ -131,7 +131,10 @@ where 'X' ranges from 1 to 10, corresponding to 10 folds. A "FR_TrainX.txt" cont
 
 # 数据集复筛
 ## 大角度数据筛选
-模型初步并不打算处理较难的数据，所以先删去大角度数据，先根据参考[4]中的方法和参考[5]和[6]中的3-D人脸模型估算出每张图片中人脸的欧拉角度(pitch, yaw, roll)，考虑到欧拉角度的估计要尽量不被人的表情所影响，所以选取了6个landmark：[Left corner of left eye, Right corner of left eye, Left corner of right eye, Right corner of right eye, Nose tip, Contour(Chin)]。
+模型初步并不打算处理较难的数据，所以先删去大角度数据，先根据参考[4]中的方法和参考[5]和[6]中的3-D人脸模型估算出每张图片中人脸的欧拉角度(pitch, yaw, roll)，划分数据集时用到的landmark，和具体筛选方法都存在数据集中的备份代码里。
+
+现在最大的问题是，没有一个标准的人脸模型，以及计算方法上应该还有优化空间，总之目前算出人脸的欧拉角度还不够准确，外加上很多漫画图的人脸变形严重，偶尔会出现计算错误。数据集的划分策略如下：
+1. yaw角度大于30度就直接剔除，效果还算不错，但也有正脸漫画被误判为侧脸的情况。
 
 ## 错误数据
 ### 类别错误
