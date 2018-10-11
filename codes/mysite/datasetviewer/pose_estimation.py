@@ -1,22 +1,40 @@
 import cv2
 import numpy as np
 
+from tqdm import tqdm
 
-def pose_estimation(im_str, landmark):
+
+def pose_estimation(im_str, landmark, type):
     # get cv2 image
     im = np.fromstring(im_str, np.uint8)
     im = cv2.imdecode(im, cv2.IMREAD_COLOR)
     size = im.shape
 
     # 2D image points.
-    image_points = np.array([
-        landmark[8],       # Left corner of left eye
-        landmark[9],       # Right corner of left eye
-        landmark[10],      # Left corner of right eye
-        landmark[11],      # Right corner of right eye
-        landmark[12],      # Nose tip
-        landmark[2],       # Contour(Chin)
-    ], dtype='double')
+    if type == 0:
+        image_points = np.array([
+            landmark[8],        # Left corner of left eye
+            landmark[9],        # Right corner of left eye
+            landmark[10],       # Left corner of right eye
+            landmark[11],       # Right corner of right eye
+            landmark[12],       # Nose tip
+            landmark[2],        # Contour(Chin)
+            landmark[13],       # Mouth upper lip top
+            landmark[14],       # Mouth left corner
+            landmark[15],       # Mouth lower lip bottom
+            landmark[16],       # Mouth right corner
+        ], dtype='double')
+    elif type == 1:
+        image_points = np.array([
+            landmark[12],       # Nose tip
+            landmark[2],        # Contour(Chin)
+            landmark[8],        # Left corner of left eye
+            landmark[11],       # Right corner of right eye
+            landmark[14],       # Mouth left corner
+            landmark[16],       # Mouth right corner
+        ], dtype='double')
+    else:
+        assert False, 'unknow type: {}'.format(type)
 
     # 3D model points.
     # This 3D model comes from
@@ -29,14 +47,28 @@ def pose_estimation(im_str, landmark):
     # 3D Vision, 2013, pages 103-110
     #
     # http://facepage.gforge.inria.fr/Downloads/multilinear_face_model.7z
-    model_points = np.array([
-        (-40.0842667, 4.5685606, 71.7215538),       # Left corner of left eye
-        (-4.4239935, 6.4678698, 83.1831589),        # Right corner of left eye
-        (22.1054259, 4.9072615, 82.2120888),        # Left corner of right eye
-        (60.6649881, 5.1719070, 66.5766238),        # Right corner of right eye
-        (9.6113257, -35.8565550, 108.0227578),      # Nose tip
-        (8.8716316, -100.8706606, 70.5823179),      # Contour(Chin)
-    ], dtype='double')
+    if type == 0:
+        model_points = np.array([
+            (-40.0842667, 4.5685606, 71.7215538),       # Left corner of left eye
+            (-4.4239935, 6.4678698, 83.1831589),        # Right corner of left eye
+            (22.1054259, 4.9072615, 82.2120888),        # Left corner of right eye
+            (60.6649881, 5.1719070, 66.5766238),        # Right corner of right eye
+            (9.6113257, -35.8565550, 108.0227578),      # Nose tip
+            (8.8716316, -100.8706606, 70.5823179),      # Contour(Chin)
+            (7.8067696, -56.3137785, 90.8181463),       # Mouth upper lip top
+            (-17.9012600, -62.3345513, 72.0136693),     # Mouth left corner
+            (8.6057675, -73.9771469, 84.0426881),       # Mouth lower lip bottom
+            (37.6207788, -61.9098011, 70.2096017),      # Mouth right corner
+        ], dtype='double')
+    elif type == 1:
+        model_points = np.array([
+            (0.0, 0.0, 0.0),            # Nose tip
+            (0.0, -330.0, -65.0),       # Contour(Chin)
+            (-225.0, 170.0, -135.0),    # Left corner of left eye
+            (225.0, 170.0, -135.0),     # Right corner of right eye
+            (-150.0, -150.0, -125.0),   # Mouth left corner
+            (150.0, -150.0, -125.0),    # Mouth right corner
+        ], dtype='double')
 
     # Camera internals
     focal_length = size[1]
@@ -76,11 +108,17 @@ def pose_estimation(im_str, landmark):
     return pitch, yaw, roll
 
 
+def calc_sloped_angle(pitch, yaw):
+    # import ipdb; ipdb.set_trace()
+    t = np.sqrt(np.sin(pitch) ** 2 + np.tan(yaw) ** 2)
+    return np.arctan2(t, np.cos(pitch))
+
+
 def generate_side_face_dataset():
     import os, shutil, hashlib
-
+    
     from . import config
-    from .utils import get_dirs, get_overview, get_image
+    from .utils import get_dirs, get_image, get_overview, dataset_iterator
 
     # get overview
     (images_dir, filenames_dir, landmarks_dir), messages = get_dirs(config.WC_original_dataset_name)
@@ -107,14 +145,31 @@ def generate_side_face_dataset():
 
     # estimating pose
     new_filenames_dir = os.path.join(new_dataset_dir, config.WC_filenames_dir_name)
-    for people_name in people_names:
-        for image_type in ('c', 'p',):
-            for image_name in image_names[people_name][image_type]:
-                image = get_image(config.WC_original_dataset_name, people_name, image_name, show_landmark=0)
-                euler_angle = pose_estimation(image, landmarks[people_name][image_name])
-                print(euler_angle)
-                import pdb; pdb.set_trace()
+    for people_name, image_type, image_name, landmark in tqdm(dataset_iterator(config.WC_original_dataset_name)):
+        im_str = get_image(config.WC_original_dataset_name, people_name, image_name, show_landmark=0)
+        pitch, yaw, roll = pose_estimation(im_str, landmark, type=0)
+        theta = np.abs(yaw) / np.pi * 180
+        if theta > 30:
+            people_name = people_name.replace('_', ' ')
+            file_dir = os.path.join(new_filenames_dir, people_name)
+            os.makedirs(file_dir, exist_ok=True)
+            file_path = os.path.join(file_dir, config.WC_c_filename if image_type == 'c' else config.WC_p_filename)
+            with open(file_path, 'a') as file:
+                file.write(image_name+'.jpg\n')
 
 
 if __name__ == '__main__':
+    # import math
+
+    # from . import config
+    # from .utils import get_image, dataset_iterator
+
+    # for people_name, image_type, image_name, landmark in dataset_iterator(config.WC_original_dataset_name):
+    #     im_str = get_image(config.WC_original_dataset_name, people_name, image_name, show_landmark=0)
+    #     pose0 = pose_estimation(im_str, landmark, type=0)
+    #     pose1 = pose_estimation(im_str, landmark, type=1)
+    #     print(people_name, image_name, '\n',
+    #           pose0, pose0[1] / math.pi * 180, '\n',
+    #           pose1, pose1[1] / math.pi * 180, '\n',)
+    #     input()
     generate_side_face_dataset()
