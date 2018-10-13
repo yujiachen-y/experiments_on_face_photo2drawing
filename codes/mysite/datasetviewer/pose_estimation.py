@@ -114,7 +114,36 @@ def calc_sloped_angle(pitch, yaw):
     return np.arctan2(t, np.cos(pitch))
 
 
-def generate_side_face_dataset():
+def generate_dataset_pose_filter():
+    '''
+    partitioning data set based on the posture of face
+    '''
+    def is_front_face_img(im_str, landmark):
+        pitch, yaw, roll = pose_estimation(im_str, landmark, type=0)
+        theta = np.abs(yaw) / np.pi * 180
+        return theta <= 30
+
+    def perpare_dataset_dir(new_dataset_name):
+        # makedir and backup
+        version = sum(map(lambda x: x.startswith(new_dataset_name), os.listdir(config.WC_datasets_dir)))
+        new_dataset_dir = os.path.join(config.WC_datasets_dir, '%s_v%03d' % (new_dataset_name, version))
+        os.makedirs(new_dataset_dir)
+        shutil.copy(__file__, new_dataset_dir)
+
+        # md5 check
+        m = hashlib.md5()
+        with open(__file__, 'rb') as f:
+            m.update(f.read())
+        md5_path = os.path.join(new_dataset_dir, 'md5')
+        if not os.path.exists(md5_path):
+            with open(md5_path, 'wb') as md5_file:
+                md5_file.write(m.digest())
+        else:
+            with open(md5_path, 'rb') as md5_file:
+                assert md5_file.read() == m.digest(), 'You can not change file: %s to override existing dataset!' % __file__
+        
+        return new_dataset_dir
+
     import os, shutil, hashlib
     
     from . import config
@@ -124,38 +153,26 @@ def generate_side_face_dataset():
     (images_dir, filenames_dir, landmarks_dir), messages = get_dirs(config.WC_original_dataset_name)
     people_names, image_names, landmarks = get_overview(images_dir, filenames_dir, landmarks_dir)
 
-    # makedir and backup
-    new_dataset_name = 'side_face_dataset'
-    version = sum(map(lambda x: x.startswith(new_dataset_name), os.listdir(config.WC_datasets_dir)))
-    new_dataset_dir = os.path.join(config.WC_datasets_dir, 'side_face_dataset_v%03d' % version)
-    os.makedirs(new_dataset_dir)
-    shutil.copy(__file__, new_dataset_dir)
-
-    # md5 check
-    m = hashlib.md5()
-    with open(__file__, 'rb') as f:
-        m.update(f.read())
-    md5_path = os.path.join(new_dataset_dir, 'md5')
-    if not os.path.exists(md5_path):
-        with open(md5_path, 'wb') as md5_file:
-            md5_file.write(m.digest())
-    else:
-        with open(md5_path, 'rb') as md5_file:
-            assert md5_file.read() == m.digest(), 'You can not change file: %s to override existing dataset!' % __file__
+    # perpare_dataset_dir
+    new_dataset_names = ['front_face_dataset', 'side_face_dataset']
+    new_dataset_dirs = []
+    for new_dataset_name in new_dataset_names:
+        new_dataset_dirs.append(perpare_dataset_dir(new_dataset_name))
 
     # estimating pose
-    new_filenames_dir = os.path.join(new_dataset_dir, config.WC_filenames_dir_name)
     for people_name, image_type, image_name, landmark in tqdm(dataset_iterator(config.WC_original_dataset_name)):
         im_str = get_image(config.WC_original_dataset_name, people_name, image_name, show_landmark=0)
-        pitch, yaw, roll = pose_estimation(im_str, landmark, type=0)
-        theta = np.abs(yaw) / np.pi * 180
-        if theta > 30:
-            people_name = people_name.replace('_', ' ')
-            file_dir = os.path.join(new_filenames_dir, people_name)
-            os.makedirs(file_dir, exist_ok=True)
-            file_path = os.path.join(file_dir, config.WC_c_filename if image_type == 'c' else config.WC_p_filename)
-            with open(file_path, 'a') as file:
-                file.write(image_name+'.jpg\n')
+        if is_front_face_img(im_str, landmark):
+            new_dataset_dir = new_dataset_dirs[0]
+        else:
+            new_dataset_dir = new_dataset_dirs[1]
+        people_name = people_name.replace('_', ' ')
+        new_filenames_dir = os.path.join(new_dataset_dir, config.WC_filenames_dir_name)
+        file_dir = os.path.join(new_filenames_dir, people_name)
+        os.makedirs(file_dir, exist_ok=True)
+        file_path = os.path.join(file_dir, config.WC_c_filename if image_type == 'c' else config.WC_p_filename)
+        with open(file_path, 'a') as file:
+            file.write(image_name+'.jpg\n')
 
 
 if __name__ == '__main__':
@@ -172,4 +189,4 @@ if __name__ == '__main__':
     #           pose0, pose0[1] / math.pi * 180, '\n',
     #           pose1, pose1[1] / math.pi * 180, '\n',)
     #     input()
-    generate_side_face_dataset()
+    generate_dataset_pose_filter()

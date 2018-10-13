@@ -64,10 +64,10 @@ def get_overview(images_dir, filenames_dir, landmarks_dir):
             filename_path = os.path.join(filenames_dir, people_name, filename_path)
             if os.path.exists(filename_path):
                 with open(filename_path) as f:
-                    filenames = [os.path.splitext(filename.strip())[0] for filename in f.readlines()]
+                    filenames = [os.path.splitext(filename.strip())[0] for filename in f.readlines() if not filename.strip() == '']
             else:
                 filenames = []
-            filenames = [filename for filename in filenames if not filename == '']
+            # filenames = [filename for filename in filenames if not filename == '']
             result[image_type] = filenames
         return result
 
