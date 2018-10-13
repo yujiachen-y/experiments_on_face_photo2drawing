@@ -84,7 +84,7 @@ View 1 is used for parameter tuning. "FR_Train_dev.txt" can be used for training
 Files of View 2 include:
 -"EvaluationProtocols\FaceIdentification\FR_TrainX.txt"
 -"EvaluationProtocols\FaceIdentification\P2C\FR_Gallery_P2CX.txt"
--"EvaluationProtocols\FaceIdentification\P2C\FR_Probe_P2CX.txt" 
+-"EvaluationProtocols\FaceIdentification\P2C\FR_Probe_P2CX.txt"
 where 'X' ranges from 1 to 10, corresponding to 10 folds. A "FR_TrainX.txt" contains a few lines, with each line containing a name of the subject, its number of caricatures and its number of photos. All the caricatures and photos of the subject can be used for training. Then the corresponding "FR_Gallery_P2CX.txt", "FR_Probe_P2CX.txt" should be used for testing. This process should be done ten times for result reporting.
 
 ## 注意：
@@ -129,12 +129,21 @@ where 'X' ranges from 1 to 10, corresponding to 10 folds. A "FR_TrainX.txt" cont
 具体数据见原文。
 文中说到了第2中脸部对齐方法在传统模型里的表现最好，但是不适合应用在深度学习里，所以就没做相关实验，但是文中后面明确说了实验没有fine tune vgg face，而是直接用的vgg face的原参数，我觉得是论文作者不想花时间重新训一个模型所以没有验证第2个方法的表现。
 
-# 数据集复筛
-## 大角度数据筛选
+# 数据集处理
+因为图像生成任务本身有一定难度，所以预处理数据集，来简化模型的任务也是一个需要仔细考虑的问题，目前打算有如下对数据集进行处理的打算。
+- 根据landmark从原图中抠出人脸块，转正，然后考虑如何处理筛选出的数据
+- 踢掉一些难度过高的数据，然后考虑如何处理筛选出的数据
+- 不对数据集进行处理
+
+## 难度过高数据剔除
+### 大角度数据
 模型初步并不打算处理较难的数据，所以先删去大角度数据，先根据参考[4]中的方法和参考[5]和[6]中的3-D人脸模型估算出每张图片中人脸的欧拉角度(pitch, yaw, roll)，划分数据集时用到的landmark，和具体筛选方法都存在数据集中的备份代码里。
 
 现在最大的问题是，没有一个标准的人脸模型，以及计算方法上应该还有优化空间，总之目前算出人脸的欧拉角度还不够准确，外加上很多漫画图的人脸变形严重，偶尔会出现计算错误。数据集的划分策略如下：
 1. yaw角度大于30度就直接剔除，效果还算不错，但也有正脸漫画被误判为侧脸的情况。
+2. 只判断landmark的相对位置是不是侧脸，打算通过降低筛选算法的复杂度来提高选出侧脸的precision rate
+
+# 数据集复筛
 
 ## 错误数据
 ### 类别错误
