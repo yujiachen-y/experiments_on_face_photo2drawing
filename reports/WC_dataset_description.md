@@ -9,8 +9,8 @@
 
 ## 文件结构
 - OriginalImages：目录下是各个人名的子目录，每个人名子目录下C开头的照片是卡通画像，P开头的是真实照片
-- FacialPoints：以txt的形式存着每张照片的landmark，每个landmark点两个数字，前面代表着x轴坐标，后面代表着y轴坐标 **（如何标记这些点？实际上访问矩阵的时候是不是先访问y再访问x？）**，landmark的格式如下
-
+- FacialPoints：以txt的形式存着每张照片的landmark，每个landmark点两个数字，前面代表着x轴坐标，后面代表着y轴坐标，不过注意一张图片被读进的坐标如下，landmark的格式如下
+![](elements/cv_image.jpg)
 ![landmarks_description](https://cs.nju.edu.cn/rl/Caricature_files/example/Landmarks_black.jpg)
 
 | Landmark | Meaning | Landmark | Meaning |
