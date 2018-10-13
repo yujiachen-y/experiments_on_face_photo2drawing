@@ -77,7 +77,7 @@ def get_overview(images_dir, filenames_dir, landmarks_dir):
         '''
         people_name = people_name.replace('_', ' ')
         image_name += '.txt'
-        return [tuple(map(int, map(float, landmark.strip().split(' '))))\
+        return [tuple(map(float, landmark.strip().split(' ')))\
                 for landmark in\
                 open(os.path.join(landmarks_dir, people_name, image_name)).readlines()]
 
@@ -107,7 +107,7 @@ def get_image(dataset_name, people_name, image_name, show_landmark=1):
 
         image = cv2.imread(src)
         for ld in lamdmark:
-            x, y = ld
+            x, y = map(round, ld)
             image[y-5:y+5, x-5:x+5, :] = np.array([0, 100, 0])
         cv2.imwrite(dst, image)
 
