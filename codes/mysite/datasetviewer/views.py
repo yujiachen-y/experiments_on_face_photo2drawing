@@ -4,7 +4,7 @@ from django.http import HttpResponse
 from django.shortcuts import render
 
 from . import config
-from .utils import get_dirs, get_overview, get_image, get_pose
+from .datas import get_dirs, get_image, get_overview, get_pose
 
 # Create your views here.
 def return_an_error_page_if_DirNotFindError(func):

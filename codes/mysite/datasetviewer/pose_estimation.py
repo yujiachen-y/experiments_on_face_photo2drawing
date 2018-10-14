@@ -1,13 +1,14 @@
+import os
+
 import cv2
 import numpy as np
-
 from tqdm import tqdm
 
 
 def pose_estimation(im_str, landmark, type):
     # get cv2 image
-    im = np.fromstring(im_str, np.uint8)
-    im = cv2.imdecode(im, cv2.IMREAD_COLOR)
+    from .utils import im_str_to_np
+    im = im_str_to_np(im_str)
     size = im.shape
 
     # 2D image points.
@@ -122,32 +123,10 @@ def generate_dataset_pose_filter():
         pitch, yaw, roll = pose_estimation(im_str, landmark, type=0)
         theta = np.abs(yaw) / np.pi * 180
         return theta <= 30
-
-    def perpare_dataset_dir(new_dataset_name):
-        # makedir and backup
-        version = sum(map(lambda x: x.startswith(new_dataset_name), os.listdir(config.WC_datasets_dir)))
-        new_dataset_dir = os.path.join(config.WC_datasets_dir, '%s_v%03d' % (new_dataset_name, version))
-        os.makedirs(new_dataset_dir)
-        shutil.copy(__file__, new_dataset_dir)
-
-        # md5 check
-        m = hashlib.md5()
-        with open(__file__, 'rb') as f:
-            m.update(f.read())
-        md5_path = os.path.join(new_dataset_dir, 'md5')
-        if not os.path.exists(md5_path):
-            with open(md5_path, 'wb') as md5_file:
-                md5_file.write(m.digest())
-        else:
-            with open(md5_path, 'rb') as md5_file:
-                assert md5_file.read() == m.digest(), 'You can not change file: %s to override existing dataset!' % __file__
-        
-        return new_dataset_dir
-
-    import os, shutil, hashlib
     
     from . import config
-    from .utils import get_dirs, get_image, get_overview, dataset_iterator
+    from .datas import get_dirs, get_image, get_overview
+    from .utils import dataset_iterator, perpare_dataset_dir
 
     # get overview
     (images_dir, filenames_dir, landmarks_dir), messages = get_dirs(config.WC_original_dataset_name)
@@ -157,7 +136,7 @@ def generate_dataset_pose_filter():
     new_dataset_names = ['front_face_dataset', 'side_face_dataset']
     new_dataset_dirs = []
     for new_dataset_name in new_dataset_names:
-        new_dataset_dirs.append(perpare_dataset_dir(new_dataset_name))
+        new_dataset_dirs.append(perpare_dataset_dir(new_dataset_name, __file__))
 
     # estimating pose
     for people_name, image_type, image_name, landmark in tqdm(dataset_iterator(config.WC_original_dataset_name)):
