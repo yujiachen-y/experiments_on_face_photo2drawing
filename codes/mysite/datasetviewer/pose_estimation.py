@@ -128,10 +128,6 @@ def generate_dataset_pose_filter():
     from .datas import get_dirs, get_image, get_overview
     from .utils import dataset_iterator, perpare_dataset_dir
 
-    # get overview
-    (images_dir, filenames_dir, landmarks_dir), messages = get_dirs(config.WC_original_dataset_name)
-    people_names, image_names, landmarks = get_overview(images_dir, filenames_dir, landmarks_dir)
-
     # perpare_dataset_dir
     new_dataset_names = ['front_face_dataset', 'side_face_dataset']
     new_dataset_dirs = []
@@ -142,6 +138,90 @@ def generate_dataset_pose_filter():
     for people_name, image_type, image_name, landmark in tqdm(dataset_iterator(config.WC_original_dataset_name)):
         im_str = get_image(config.WC_original_dataset_name, people_name, image_name, show_landmark=0)
         if is_front_face_img(im_str, landmark):
+            new_dataset_dir = new_dataset_dirs[0]
+        else:
+            new_dataset_dir = new_dataset_dirs[1]
+        people_name = people_name.replace('_', ' ')
+        new_filenames_dir = os.path.join(new_dataset_dir, config.WC_filenames_dir_name)
+        file_dir = os.path.join(new_filenames_dir, people_name)
+        os.makedirs(file_dir, exist_ok=True)
+        file_path = os.path.join(file_dir, config.WC_c_filename if image_type == 'c' else config.WC_p_filename)
+        with open(file_path, 'a') as file:
+            file.write(image_name+'.jpg\n')
+
+
+def generate_dataset_landmark_filter():
+
+    def check_landmark_position(landmark):
+        landmark = np.array(landmark)
+
+        # check 1, 2, 3, 4
+        if not (landmark[0, 1] <= np.min(landmark[0:4, 1]) and\
+                landmark[1, 0] <= np.min(landmark[0:4, 0]) and\
+                landmark[2, 1] >= np.max(landmark[0:4, 1]) and\
+                landmark[3, 0] >= np.max(landmark[0:4, 0])):
+            return False
+
+        # check 5, 6, 7, 8
+        if not (landmark[4, 0] < landmark[5, 0] < landmark[6, 0] < landmark[7, 0]):
+            return False
+
+        # check 9, 10, 11, 12
+        if not (landmark[8, 0] < landmark[9, 0] < landmark[10, 0] < landmark[11, 0]):
+            return False
+
+        # check 13, 14, 15, 16, 17
+        if not (landmark[14, 0] < np.min((landmark[12, 0], landmark[13, 0], landmark[15, 0],)) <\
+                                  np.max((landmark[12, 0], landmark[13, 0], landmark[15, 0],)) <\
+                                  landmark[16, 0] and\
+                landmark[12, 1] < np.min(landmark[13:17, 1])):
+            return False
+
+        # check horizontal
+        if not (landmark[1, 0] < np.min(landmark[12:16, 0]) < landmark[3, 0]):
+            return False
+
+        # check vertical
+        if not (landmark[0, 1] < np.min(landmark[4:8, 1]) < np.max(landmark[4:8, 1]) <\
+                                 np.min(landmark[8:12, 1]) < np.max(landmark[8:12, 1]) <\
+                                 np.min(landmark[12:16, 1]) < np.max(landmark[12:16, 1]) < landmark[2, 1]):
+            return False
+        
+        return True
+
+    def is_corrected_landmark(new_landmark):
+        from . import warp
+
+        if not check_landmark_position(new_landmark):
+           return False
+
+        w, h = warp.imgSize
+        new_landmark = warp.get_img5point(new_landmark)
+        for ld0, ld1 in zip(warp.coord5point, new_landmark):
+            if not (0 <= ld1[0] < w and 0 <= ld1[1] < h):
+                return False
+            ld0, ld1 = np.array(ld0), np.array(ld1)
+            if np.sum((ld0 - ld1)**2) * np.pi > w * h * 0.05:
+                return False
+
+        return True
+
+    from . import config
+    from .datas import get_dirs, get_image, get_overview
+    from .utils import dataset_iterator, perpare_dataset_dir
+
+    # perpare_dataset_dir
+    new_dataset_names = ['corrected_landmark_dataset', 'uncorrected_landmark_dataset',]
+    new_dataset_dirs = []
+    for new_dataset_name in new_dataset_names:
+        new_dataset_dirs.append(perpare_dataset_dir(new_dataset_name, __file__))
+
+    # check landmark
+    parent_dataset_name = 'frontalization_dataset'
+    version = sum(map(lambda x: x.startswith(parent_dataset_name), os.listdir(config.WC_datasets_dir)))
+    latest_dataset_dir = os.path.join(config.WC_datasets_dir, '%s_v%03d' % (parent_dataset_name, version-1))
+    for people_name, image_type, image_name, new_landmark in tqdm(dataset_iterator(latest_dataset_dir)):
+        if is_corrected_landmark(new_landmark):
             new_dataset_dir = new_dataset_dirs[0]
         else:
             new_dataset_dir = new_dataset_dirs[1]
@@ -168,4 +248,13 @@ if __name__ == '__main__':
     #           pose0, pose0[1] / math.pi * 180, '\n',
     #           pose1, pose1[1] / math.pi * 180, '\n',)
     #     input()
-    generate_dataset_pose_filter()
+    import argparse
+    parse = argparse.ArgumentParser()
+    parse.add_argument('-p', '--pose_filter', action='store_true')
+    parse.add_argument('-l', '--landmark_filter', action='store_true')
+
+    args = parse.parse_args()
+    if args.pose_filter:
+        generate_dataset_pose_filter()
+    elif args.landmark_filter:
+        generate_dataset_landmark_filter()

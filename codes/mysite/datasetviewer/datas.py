@@ -1,11 +1,22 @@
+import json
 import os
 from functools import lru_cache
+from collections import defaultdict
 
 import cv2
 import numpy as np
 from tqdm import tqdm
 
 from . import config
+
+
+@lru_cache(maxsize=config.cache_size)
+def get_dataset_config(dataset_name):
+    try:
+        with open(os.path.join(config.WC_datasets_dir, dataset_name, config.dataset_config_name)) as f:
+            return json.load(f)
+    except:
+        return defaultdict(lambda: config.WC_original_dataset_name)
 
 
 def get_dirs(dataset_name):
@@ -15,23 +26,29 @@ def get_dirs(dataset_name):
     (fd_message, ld_message)
     or raise an Exception
     '''
-    def get_dir(dataset_name, dir_name):
+    def get_dir(dataset_name, dir_name, alt_dataset_name):
         result_dir = os.path.join(config.WC_datasets_dir,\
             dataset_name, dir_name)
         result_message = None
         if not os.path.exists(result_dir):
             tmp_result_dir = os.path.join(config.WC_datasets_dir,\
-                config.WC_original_dataset_name, dir_name)
-            result_message = "path: %s doesn't exits, so we use path: %s instead." % (result_dir, tmp_result_dir)
-            result_dir = tmp_result_dir
+                alt_dataset_name, dir_name)
             if not os.path.exists(tmp_result_dir):
-                result_message = "path: %s doesn't exist" % tmp_result_dir
+                result_message = "path: %s and path: %s doesn't exist" % (result_dir, tmp_result_dir)
                 result_dir = None
+            else:
+                result_message = "path: %s doesn't exits, so we use path: %s instead." % (result_dir, tmp_result_dir)
+                result_dir = tmp_result_dir
         return result_dir, result_message
 
-    images_dir, id_message = get_dir(dataset_name, config.WC_original_images_dir_name)
-    filenames_dir, fd_message = get_dir(dataset_name, config.WC_filenames_dir_name)
-    landmarks_dir, ld_message = get_dir(dataset_name, config.WC_landmarks_dir_name)
+    dataset_config = get_dataset_config(dataset_name)
+
+    images_dir_name = config.WC_original_images_dir_name
+    images_dir, id_message = get_dir(dataset_name, images_dir_name, dataset_config[images_dir_name])
+    filenames_dir_name = config.WC_filenames_dir_name
+    filenames_dir, fd_message = get_dir(dataset_name, filenames_dir_name, dataset_config[filenames_dir_name])
+    landmarks_dir_name = config.WC_landmarks_dir_name
+    landmarks_dir, ld_message = get_dir(dataset_name, landmarks_dir_name, dataset_config[landmarks_dir_name])
 
     dirs = (images_dir, filenames_dir, landmarks_dir)
     messages = (id_message, fd_message, ld_message)
@@ -105,11 +122,17 @@ def get_image(dataset_name, people_name, image_name, show_landmark=1):
     return a jpg image buffer based on people_name, image_name and show_landmark
     '''
     def genarate_landmark_image(src, dst, lamdmark):
-        image = cv2.imread(src)
+        src = os.path.split(src)
+        os.chdir(src[0])
+        image = cv2.imread(src[1])
+        w, h, _ = image.shape
         for ld in lamdmark:
             x, y = map(round, ld)
-            image[y-5:y+5, x-5:x+5, :] = np.array([0, 100, 0])
-        cv2.imwrite(dst, image)
+            if 5 <= y < w-5 and 5 <= x < h-5:
+                image[y-5:y+5, x-5:x+5, :] = np.array([0, 100, 0])
+        dst = os.path.split(dst)
+        os.chdir(dst[0])
+        cv2.imwrite(dst[1], image)
 
     (images_dir, filenames_dir, landmarks_dir), messages = get_dirs(dataset_name)
     people_names, image_names, landmarks = get_overview(images_dir, filenames_dir, landmarks_dir)

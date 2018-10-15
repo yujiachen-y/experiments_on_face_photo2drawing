@@ -8,6 +8,8 @@ datasets_dir = os.path.join('C:\\Users\\yjc56\\Documents\\_My_Self\\学习\\2018
 
 # datasetviewer
 datasetviewer_dir_name = '.datasetviewer'
+backup_scr_dir = os.path.split(__file__)[0]
+dataset_config_name = 'config.json'
 
 # WebCaricature datasets
 WC_datasets_dir = os.path.join(datasets_dir, 'WebCaricature')

@@ -35,15 +35,15 @@
 li {
     list-style: none;
     float: left;
-    width: 20%;/*三列图片排列*/
-    height: 469px;/*当图片尺寸不一的时候，设置一个高度*/
+    width: 20%;
+    height: 256px;/*当图片尺寸不一的时候，设置一个高度*/
     overflow: hidden;/*超出隐藏*/
 }
 li img {
     position: relative;
     width: 100%;
-    top: 50%;/*li高度的一半*/
-    transform: translateY(-50%);
+    top: 100%;
+    transform: translateY(-100%);
 }
 .clearfix:after {
   visibility: hidden;
@@ -58,21 +58,16 @@ li img {
     margin: 0 auto;
 }
 </style>
+
 <p><strong>{{ people_name }}</strong></p>
 <div class="container"> 
     <p>caricatures</p><br>
     <ul class="clearfix"> 
         {% for image_name in image_names.c %}
         <li>
-            
-                <a href="{% url 'datasetviewer:view_image' show_landmark dataset_name people_name image_name %}" target="_blank">
-                    <img src="{% url 'datasetviewer:view_image' show_landmark dataset_name people_name image_name %}">
-                </a>    
-            
-            
-                 <p>{% url 'datasetviewer:view_pose' dataset_name people_name image_name %}</p>
-            
-            
+            <a href="{% url 'datasetviewer:view_image' show_landmark dataset_name people_name image_name %}" target="_blank">
+                <img src="{% url 'datasetviewer:view_image' show_landmark dataset_name people_name image_name %}">
+            </a>
         </li>    
         {% endfor %}
     </ul>
