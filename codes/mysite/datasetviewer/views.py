@@ -36,6 +36,8 @@ def overview(request, dataset_name, show_landmark=1):
         'dataset_name': dataset_name,
         'people_names_and_image_names': [(people_name, image_names[people_name]) for people_name in people_names],
         'show_landmark': show_landmark,
+        'total_people': len(people_names),
+        'total_images': sum([len(people_landmarks) for people_landmarks in landmarks]),
     })
 
 
