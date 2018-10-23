@@ -4,7 +4,7 @@ import os
 cache_size = None
 
 # datasets
-datasets_dir = os.path.join('C:\\Users\\yjc56\\Documents\\_My_Self\\学习\\2018下\\graduation_project\\datasets\\')
+datasets_dir = os.path.join('..', '..', 'datasets')
 
 # datasetviewer
 datasetviewer_dir_name = '.datasetviewer'
@@ -25,3 +25,7 @@ WC_p_filename = 'file_p.txt'
 # useful classes
 class DirNotFindError(RuntimeError):
     pass
+
+
+if __name__ == '__main__':
+    print(os.listdir(datasets_dir))
