@@ -193,7 +193,7 @@ where 'X' ranges from 1 to 10, corresponding to 10 folds. A "FR_TrainX.txt" cont
 
 最后检查转中后的landmark和标准landmark[8]之间的距离是否在一个标准内（目前采用的方法是以两个landmark为半径的圆面积是否超过图片面积的5%），这个条件可以进一步降低网络学习的难度。
 
-最后符合规范的数据有3098张图片。
+最后符合规范的数据有8550张图片。
 
 下面是一些被剔除的landmark不规范数据：
 
@@ -202,6 +202,10 @@ where 'X' ranges from 1 to 10, corresponding to 10 folds. A "FR_TrainX.txt" cont
 ### ~~剔除和照片相似的画像~~
 
 剔除和照片相似的画像可以进一步让网络理解我们需要其完成的任务，但是目前来看，只有通过人眼审核才能剔除此类数据，工作量过大，还需要标注工具的开发，因此目前先不进行这项工作，希望数据不会过于不纯。
+
+## 数据集划分
+
+预计明天处理。
 
 # DatasetViewer
 
