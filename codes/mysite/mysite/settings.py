@@ -10,6 +10,8 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/2.1/ref/settings/
 """
 
+import getpass
+import hashlib
 import os
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
@@ -23,9 +25,18 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = '&n7i@rg=3b#6p&uyc$z!o-20r0qpe1*(@*xci4-ci&f1$wuaan'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-
-ALLOWED_HOSTS = []
+h = hashlib.md5(bytes(getpass.getuser(), encoding='utf8'))
+user = h.hexdigest()
+h = hashlib.md5(bytes(getpass.getpass(), encoding='utf8'))
+password = h.hexdigest()
+if user == '60914844f6d95ffee6b2c8cc0e21dde9' and password == '8c235ed7ca5882137c6f6537ab62ffc7':
+    DEBUG = True
+    ALLOWED_HOSTS = []
+else:
+    DEBUG = False
+    ALLOWED_HOSTS = []
+    from .utils import get_host_ip
+    ALLOWED_HOSTS.append(get_host_ip())
 
 
 # Application definition

@@ -100,7 +100,7 @@ def get_overview(images_dir, filenames_dir, landmarks_dir):
                 for landmark in\
                 open(os.path.join(landmarks_dir, people_name, image_name)).readlines()]
 
-    people_names = [people_name.replace(' ', '_') for people_name in os.listdir(filenames_dir)]
+    people_names = [people_name.replace(' ', '_') for people_name in sorted(os.listdir(filenames_dir))]
 
     image_names, landmarks = {}, {}
     for people_name in tqdm(people_names):

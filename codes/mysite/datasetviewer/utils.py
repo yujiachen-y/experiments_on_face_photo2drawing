@@ -26,8 +26,9 @@ def dataset_iterator(dataset_name):
 
 def perpare_dataset_dir(new_dataset_name, file):
     def ext_provider(search_dir, ext):
-        for dirpath, dirnames, filenames in os.walk(search_dir):
-            for filename in filenames:
+        for dirpath, dirnames, filenames in sorted(os.walk(search_dir)):
+            dirnames = sorted(dirnames)
+            for filename in sorted(filenames):
                 if os.path.splitext(filename)[-1] == ext:
                     yield os.path.join(dirpath, filename)
 
