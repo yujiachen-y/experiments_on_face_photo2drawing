@@ -1,6 +1,6 @@
 <center><h1>毕设数据集处理报告</h1></center>
 
-<center><i>written by  <a href="http://yujiachen.top/">Jiachen YU</a></i></center>
+<center><i>written by  <a href="http://yujiachen.top/">Yu, Jiachen</a></i></center>
 
 # README信息
 ## 统计
