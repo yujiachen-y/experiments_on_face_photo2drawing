@@ -38,3 +38,10 @@ C2ST认为，如果两个分布是相等的，那么从这两个分布中的任�
 [4] Deng J, Dong W, Socher R, et al. Imagenet: A large-scale hierarchical image database[C]//Computer Vision and Pattern Recognition, 2009. CVPR 2009. IEEE Conference on. Ieee, 2009: 248-255.
 [5] Xu Q, Huang G, Yuan Y, et al. An empirical study on evaluation metrics of generative adversarial networks[J]. arXiv preprint arXiv:1806.07755, 2018.
 [6] xuqiantong/GAN-Metrics[EB/OL]. GitHub, 2018. (2018)[2018 -10 -27]. https://github.com/xuqiantong/GAN-Metrics.
+
+# 参考文献说明
+## 参考5：An empirical study on evaluation metrics of generative adversarial networks
+该文以实验结果为结论，设计了Mode Collapsing、Mode Dropping、图像变形、数据集过小、数据集过大、模型过拟合等情况发生时，The Inception Score, Kernel MMD, Wasserstein distance, Frechet Inception Distance, 1-NN classifier这6个评价方法在实验中的表现。
+自己看了这篇文章后，才发现之前一直对Mode Collapsing、Mode Dropping、模型过拟合这3个现象有不理解和混淆之处，这里可以记录一下3个现象的区别
+- Mode Collapsing：模式坍塌，指一些相似的模式被generator理解成了一个模式，generator会把这些模式替代为一个"平均"的模式，实验中可以把数据集中的图片进行聚类，把一个聚类中的所有图片用聚类中心代替，以此来模拟Mode Collapsing。
+- Mode Dropping：模式丢失，
