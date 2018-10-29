@@ -11,7 +11,8 @@ from . import config
 if os.name == 'nt':
     import tqdm as Tqdm
     def tqdm(*args, **kwargs):
-        kwargs['ascii'] = True
+        if 'ascii' not in kwargs:
+            kwargs['ascii'] = True
         return Tqdm.tqdm(*args, **kwargs)
 else:
     from tqdm import tqdm
