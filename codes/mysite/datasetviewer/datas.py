@@ -5,10 +5,9 @@ from collections import defaultdict
 
 import cv2
 import numpy as np
-from tqdm import tqdm
 
 from . import config
-
+from .utils import tqdm
 
 @lru_cache(maxsize=config.cache_size)
 def get_dataset_config(dataset_name):

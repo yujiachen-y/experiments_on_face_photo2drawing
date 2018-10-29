@@ -2,7 +2,8 @@ import os
 
 import cv2
 import numpy as np
-from tqdm import tqdm
+
+from .utils import tqdm
 
 # 这里注意x代表的是横轴，y代表的是纵轴
 imgSize = np.array([128, 128])

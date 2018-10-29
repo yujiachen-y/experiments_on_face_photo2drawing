@@ -8,6 +8,14 @@ import numpy as np
 
 from . import config
 
+if os.name == 'nt':
+    import tqdm as Tqdm
+    def tqdm(*args, **kwargs):
+        kwargs['ascii'] = True
+        return Tqdm.tqdm(*args, **kwargs)
+else:
+    from tqdm import tqdm
+
 
 def dataset_iterator(dataset_name):
     '''
