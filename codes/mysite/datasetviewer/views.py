@@ -65,6 +65,7 @@ def view_image(request, dataset_name, people_name, image_name, show_landmark=1):
 
 @return_an_error_page_if_DirNotFindError
 def view_pose(request, dataset_name, people_name, image_name):
+    # TODO: add expicit url to this view
     pose = get_pose(dataset_name, people_name, image_name)
     return HttpResponse(', '.join(map(str, map(int, pose))))
 
