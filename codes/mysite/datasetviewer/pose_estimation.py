@@ -151,7 +151,7 @@ def generate_dataset_pose_filter():
             file.write(image_name+'.jpg\n')
 
 
-def generate_dataset_landmark_filter():
+def generate_dataset_landmark_filter(corrected_rate):
 
     def check_landmark_position(landmark):
         landmark = np.array(landmark)
@@ -202,7 +202,7 @@ def generate_dataset_landmark_filter():
             if not (0 <= ld1[0] < w and 0 <= ld1[1] < h):
                 return False
             ld0, ld1 = np.array(ld0), np.array(ld1)
-            if np.sum((ld0 - ld1)**2) * np.pi > w * h * 0.05:
+            if np.sum((ld0 - ld1)**2) * np.pi > w * h * corrected_rate:
                 return False
 
         return True
@@ -234,6 +234,8 @@ def generate_dataset_landmark_filter():
         with open(file_path, 'a') as file:
             file.write(image_name+'.jpg\n')
 
+    return list(map(lambda x: os.path.split(x)[-1], new_dataset_dirs))
+
 
 if __name__ == '__main__':
     # import math
@@ -249,13 +251,19 @@ if __name__ == '__main__':
     #           pose0, pose0[1] / math.pi * 180, '\n',
     #           pose1, pose1[1] / math.pi * 180, '\n',)
     #     input()
-    import argparse
-    parse = argparse.ArgumentParser()
-    parse.add_argument('-p', '--pose_filter', action='store_true')
-    parse.add_argument('-l', '--landmark_filter', action='store_true')
+    # import argparse
+    # parse = argparse.ArgumentParser()
+    # parse.add_argument('-p', '--pose_filter', action='store_true')
+    # parse.add_argument('-l', '--landmark_filter', action='store_true')
 
-    args = parse.parse_args()
-    if args.pose_filter:
-        generate_dataset_pose_filter()
-    elif args.landmark_filter:
-        generate_dataset_landmark_filter()
+    # args = parse.parse_args()
+    # if args.pose_filter:
+    #     generate_dataset_pose_filter()
+    # elif args.landmark_filter:
+    #     generate_dataset_landmark_filter()
+    from .datas import get_missing_file
+    r = 0.30
+    while r <= 1:
+        new_dataset_names = generate_dataset_landmark_filter(r)
+        print(r, get_missing_file(new_dataset_names[0])['count'])
+        r += 0.05
