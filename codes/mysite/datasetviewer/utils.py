@@ -83,9 +83,11 @@ def dict_to_str(origin_dict, tab=''):
     if type(origin_dict) is tuple:
         result = tab + str(origin_dict) + '\n'
         return result
-    result = tab + str(origin_dict.pop('count')) + '\n'
+    count = origin_dict.pop('count')
+    result = tab + str(count) + '\n'
     tab = tab + '\t'
     for key, value in origin_dict.items():
         result = result + tab + key + '\n'
         result = result + dict_to_str(value, tab)
+    origin_dict['count'] = count
     return result
