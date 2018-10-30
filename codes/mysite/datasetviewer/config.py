@@ -18,6 +18,7 @@ WC_original_dataset_name = 'original_dataset'
 WC_landmarks_dir_name = 'FacialPoints'
 WC_filenames_dir_name = 'Filenames'
 WC_original_images_dir_name = 'OriginalImages'
+WC_evaluation_protocols_dir_name = 'EvaluationProtocols'
 
 WC_c_filename = 'file_c.txt'
 WC_p_filename = 'file_p.txt'

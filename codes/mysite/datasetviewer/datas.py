@@ -1,13 +1,15 @@
 import json
 import os
-from functools import lru_cache
+import pickle
 from collections import defaultdict
+from functools import lru_cache
 
 import cv2
 import numpy as np
 
 from . import config
 from .utils import tqdm
+
 
 @lru_cache(maxsize=config.cache_size)
 def get_dataset_config(dataset_name):
@@ -166,3 +168,51 @@ def get_pose(dataset_name, people_name, image_name):
     image = get_image(dataset_name, people_name, image_name, show_landmark=0)
     landmark = landmarks[people_name][image_name]
     return pose_estimation(image, landmark, type=0)
+
+
+@lru_cache(maxsize=config.cache_size)
+def get_missing_file(dataset_name):
+    def get_current_dict(path):
+        if os.path.normpath(path) == protocols_path:
+            return result
+        paths = os.path.split(path)
+        t = get_current_dict(paths[0])
+        if paths[1] not in t:
+            t[paths[1]] = OrderedDict()
+        return t[paths[1]]
+    
+    (images_dir, filenames_dir, landmarks_dir), messages = get_dirs(dataset_name)
+    people_names, image_names, landmarks = get_overview(images_dir, filenames_dir, landmarks_dir)
+
+    protocols_path = os.path.normpath(os.path.join(
+        config.WC_datasets_dir,
+        config.WC_original_dataset_name,
+        config.WC_evaluation_protocols_dir_name,
+    ))
+    file_path = os.path.join(
+        protocols_path,
+        config.datasetviewer_dir_name,
+        dataset_name,
+    )
+    if os.path.exists(file_path):
+        with open(file_path, 'rb') as file:
+            return pickle.load(file)
+    
+    from collections import OrderedDict
+    result = OrderedDict()
+    import ipdb; ipdb.set_trace()
+    for roots, dirs, files in sorted(os.walk(protocols_path)):
+        if config.datasetviewer_dir_name in dirs:
+            dirs.remove(config.datasetviewer_dir_name)
+        t = get_current_dict(roots)
+        for file in files:
+            if os.path.splitext(file) != '.txt':
+                continue
+            t[file] = count_missing_file(file)
+
+    statisitic_result(result)
+    file_dir = os.path.split(file_path)[0]
+    os.makedirs(file_dir, exist_ok=True)
+    with open(file_path, 'wb') as file:
+        pickle.dump(result, file)
+    return result

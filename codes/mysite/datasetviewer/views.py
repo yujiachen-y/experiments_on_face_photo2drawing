@@ -70,5 +70,10 @@ def view_pose(request, dataset_name, people_name, image_name):
     return HttpResponse(', '.join(map(str, map(int, pose))))
 
 
+@return_an_error_page_if_DirNotFindError
+def view_difference_in_evaluation_protocols(request, dataset_name):
+    pass
+
+
 if __name__ == '__main__':
     overview(None, config.WC_original_dataset_name)
