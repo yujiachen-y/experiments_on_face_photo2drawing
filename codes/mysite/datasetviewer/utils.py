@@ -77,3 +77,15 @@ def im_str_to_np(im_str):
     im = np.fromstring(im_str, np.uint8)
     im = cv2.imdecode(im, cv2.IMREAD_COLOR)
     return im
+
+
+def dict_to_str(origin_dict, tab=''):
+    if type(origin_dict) is tuple:
+        result = tab + str(origin_dict) + '\n'
+        return result
+    result = tab + str(origin_dict.pop('count')) + '\n'
+    tab = tab + '\t'
+    for key, value in origin_dict.items():
+        result = result + tab + key + '\n'
+        result = result + dict_to_str(value, tab)
+    return result

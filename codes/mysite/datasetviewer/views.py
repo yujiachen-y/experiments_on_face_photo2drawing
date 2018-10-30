@@ -4,7 +4,8 @@ from django.http import HttpResponse
 from django.shortcuts import render
 
 from . import config
-from .datas import get_dirs, get_image, get_overview, get_pose
+from .datas import get_dirs, get_image, get_overview, get_pose, get_missing_file
+from .utils import dict_to_str
 
 # Create your views here.
 def return_an_error_page_if_DirNotFindError(func):
@@ -29,7 +30,8 @@ def overview(request, dataset_name, show_landmark=1):
     (images_dir, filenames_dir, landmarks_dir), messages = get_dirs(dataset_name)
 
     people_names, image_names, landmarks = get_overview(images_dir, filenames_dir, landmarks_dir)
-    # from IPython import embed; embed()
+    missing_file = get_missing_file(dataset_name)
+    missing_file = dict_to_str(missing_file)
 
     return render(request, 'datasetviewer/overview.html', {
         'messages': messages,
@@ -38,6 +40,7 @@ def overview(request, dataset_name, show_landmark=1):
         'show_landmark': show_landmark,
         'total_people': len(people_names),
         'total_images': sum(map(len, landmarks.values())),
+        'missing_file': missing_file,
     })
 
 
@@ -68,11 +71,6 @@ def view_pose(request, dataset_name, people_name, image_name):
     # TODO: add expicit url to this view
     pose = get_pose(dataset_name, people_name, image_name)
     return HttpResponse(', '.join(map(str, map(int, pose))))
-
-
-@return_an_error_page_if_DirNotFindError
-def view_difference_in_evaluation_protocols(request, dataset_name):
-    pass
 
 
 if __name__ == '__main__':

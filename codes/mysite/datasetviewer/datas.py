@@ -180,6 +180,68 @@ def get_missing_file(dataset_name):
         if paths[1] not in t:
             t[paths[1]] = OrderedDict()
         return t[paths[1]]
+
+    def count_missing_file(file_path):
+        def get_line_type(words):
+            '''
+            type 0: 'Luciano Pavarotti	23	27',
+            type 1: 'Ringo Starr	P00021',
+            type 1 special case: 'Angela Lansbury	C00001	Moe Howard	P00005',
+            type 2: 'Angela Lansbury	C00001	P00004'
+            '''
+            if words[-1][0] not in ('C', 'P',):
+                yield 0, words
+            elif not str.isdigit(words[-2][1]):
+                for i, word in enumerate(words):
+                    if str.isdigit(word[1]):
+                        yield 1, words[:i+1]
+                        if i != len(words) - 1:
+                            yield 1, words[i+1:]
+                        break
+            else:
+                yield 2, words
+
+        def is_valid_photo(people_name, photo):
+            return people_name in landmarks and photo in landmarks[people_name]
+
+        result, total = 0, 0
+        with open(file_path) as f:
+            for line in f.readlines():
+                words = line.split()
+                if len(words) == 1:
+                    continue
+                for line_type, words in get_line_type(words):
+                    last_index = -1 if line_type == 1 else -2
+                    people_name = '_'.join(words[:last_index])
+                    if line_type == 0:
+                        result = result + int(words[-1]) + int(words[-2]) -\
+                                 (len(landmarks[people_name]) if people_name in landmarks else 0)
+                        total = total + int(words[-1]) + int(words[-2])
+                    elif line_type == 1:
+                        result = result + 1 - int(is_valid_photo(people_name, words[-1]))
+                        total = total + 1
+                        # if result != 0:
+                        #     from IPython import embed; embed()
+                    else:
+                        result = result + 2 - int(is_valid_photo(people_name, words[-2])) - int(is_valid_photo(people_name, words[-1]))
+                        total = total + 2
+        return result, total, result / total
+
+    def statisitic_result(result):
+        count, total = result.pop('count', (0, 0))
+        for key, value in result.items():
+            if type(value) is tuple:
+                count += value[0]
+                total += value[1]
+            else:
+                result[key] = statisitic_result(value)
+                count += result[key]['count'][0]
+                total += result[key]['count'][1]
+        try:
+            result['count'] = (count, total, count / total)
+        except Exception:
+            from IPython import embed; embed()
+        return result
     
     (images_dir, filenames_dir, landmarks_dir), messages = get_dirs(dataset_name)
     people_names, image_names, landmarks = get_overview(images_dir, filenames_dir, landmarks_dir)
@@ -195,24 +257,29 @@ def get_missing_file(dataset_name):
         dataset_name,
     )
     if os.path.exists(file_path):
-        with open(file_path, 'rb') as file:
-            return pickle.load(file)
+        with open(file_path, 'rb') as f:
+            return pickle.load(f)
     
     from collections import OrderedDict
     result = OrderedDict()
-    import ipdb; ipdb.set_trace()
+    # import ipdb; ipdb.set_trace()
     for roots, dirs, files in sorted(os.walk(protocols_path)):
-        if config.datasetviewer_dir_name in dirs:
-            dirs.remove(config.datasetviewer_dir_name)
+        if config.datasetviewer_dir_name in roots:
+            continue
+        dirs = sorted(dirs)
         t = get_current_dict(roots)
-        for file in files:
-            if os.path.splitext(file) != '.txt':
+        for f in sorted(files):
+            if os.path.splitext(f)[-1] != '.txt':
                 continue
-            t[file] = count_missing_file(file)
+            t[f] = count_missing_file(os.path.join(roots, f))
 
-    statisitic_result(result)
+    result = statisitic_result(result)
     file_dir = os.path.split(file_path)[0]
     os.makedirs(file_dir, exist_ok=True)
     with open(file_path, 'wb') as file:
         pickle.dump(result, file)
     return result
+
+
+if __name__ == '__main__':
+    print(get_missing_file('corrected_landmark_dataset_v000'))
