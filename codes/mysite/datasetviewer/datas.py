@@ -237,10 +237,7 @@ def get_missing_file(dataset_name):
                 result[key] = statisitic_result(value)
                 count += result[key]['count'][0]
                 total += result[key]['count'][1]
-        try:
-            result['count'] = (count, total, count / total)
-        except Exception:
-            from IPython import embed; embed()
+        result['count'] = (count, total, count / total)
         return result
     
     (images_dir, filenames_dir, landmarks_dir), messages = get_dirs(dataset_name)
