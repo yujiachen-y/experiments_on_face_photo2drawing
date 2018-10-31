@@ -4,3 +4,6 @@
 [submodule ".\\codes\\3rdparty\\MUNIT"]
 	path = .\\codes\\3rdparty\\MUNIT
 	url = git@github.com:NVlabs/MUNIT.git
+[submodule ".\\codes\\3rdparty\\CycleGAN"]
+	path = .\\codes\\3rdparty\\CycleGAN
+	url = git@github.com:junyanz/pytorch-CycleGAN-and-pix2pix.git
