@@ -1,0 +1,3 @@
+[submodule "codes/3rdparty/MUNIT"]
+	path = codes/3rdparty/MUNIT
+	url = https://github.com/NVlabs/MUNIT.git
