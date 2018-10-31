@@ -123,18 +123,19 @@ def get_image(dataset_name, people_name, image_name, show_landmark=1):
     return a jpg image buffer based on people_name, image_name and show_landmark
     '''
     def genarate_landmark_image(src, dst, lamdmark):
-        src = os.path.split(src)
-        os.chdir(src[0])
-        image = cv2.imread(src[1])
+        # src = os.path.split(src)
+        # os.chdir(src[0])
+        image = cv2.imread(src)
         w, h, _ = image.shape
         for ld in lamdmark:
             x, y = map(round, ld)
             if 5 <= y < w-5 and 5 <= x < h-5:
                 image[y-5:y+5, x-5:x+5, :] = np.array([0, 100, 0])
-        dst = os.path.split(dst)
-        os.chdir(dst[0])
-        cv2.imwrite(dst[1], image)
+        # dst = os.path.split(dst)
+        # os.chdir(dst[0])
+        cv2.imwrite(dst, image)
 
+    # import ipdb; ipdb.set_trace()
     (images_dir, filenames_dir, landmarks_dir), messages = get_dirs(dataset_name)
     people_names, image_names, landmarks = get_overview(images_dir, filenames_dir, landmarks_dir)
     
@@ -279,4 +280,4 @@ def get_missing_file(dataset_name):
 
 
 if __name__ == '__main__':
-    print(get_missing_file('corrected_landmark_dataset_v000'))
+    from IPython import embed; embed()

@@ -190,7 +190,7 @@ def generate_dataset_landmark_filter(corrected_rate):
         
         return True
 
-    def is_corrected_landmark(new_landmark):
+    def is_corrected_landmark(new_landmark, image_type):
         from . import warp
 
         if not check_landmark_position(new_landmark):
@@ -198,7 +198,7 @@ def generate_dataset_landmark_filter(corrected_rate):
 
         w, h = warp.imgSize
         new_landmark = warp.get_img5point(new_landmark)
-        for ld0, ld1 in zip(warp.coord5point, new_landmark):
+        for ld0, ld1 in zip(warp.coord5points[image_type], new_landmark):
             if not (0 <= ld1[0] < w and 0 <= ld1[1] < h):
                 return False
             ld0, ld1 = np.array(ld0), np.array(ld1)
@@ -222,7 +222,7 @@ def generate_dataset_landmark_filter(corrected_rate):
     version = sum(map(lambda x: x.startswith(parent_dataset_name), os.listdir(config.WC_datasets_dir)))
     latest_dataset_dir = os.path.join(config.WC_datasets_dir, '%s_v%03d' % (parent_dataset_name, version-1))
     for people_name, image_type, image_name, new_landmark in tqdm(dataset_iterator(latest_dataset_dir)):
-        if is_corrected_landmark(new_landmark):
+        if is_corrected_landmark(new_landmark, image_type):
             new_dataset_dir = new_dataset_dirs[0]
         else:
             new_dataset_dir = new_dataset_dirs[1]
@@ -261,9 +261,10 @@ if __name__ == '__main__':
     #     generate_dataset_pose_filter()
     # elif args.landmark_filter:
     #     generate_dataset_landmark_filter()
-    from .datas import get_missing_file
-    r = 0.30
-    while r <= 1:
-        new_dataset_names = generate_dataset_landmark_filter(r)
-        print(r, get_missing_file(new_dataset_names[0])['count'])
-        r += 0.05
+    # from .datas import get_missing_file
+    # r = 0.30
+    # while r <= 1:
+    #     new_dataset_names = generate_dataset_landmark_filter(r)
+    #     print(r, get_missing_file(new_dataset_names[0])['count'])
+    #     r += 0.05
+    generate_dataset_landmark_filter(0.10)
