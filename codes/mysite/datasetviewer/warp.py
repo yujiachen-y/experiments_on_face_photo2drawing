@@ -7,16 +7,26 @@ from .utils import tqdm
 
 # 这里注意x代表的是横轴，y代表的是纵轴
 imgSize = np.array([128, 128])
-coord5point = np.array([
-    (30.2946, 51.6963,),        # Left eye
-    (65.5318, 51.5014,),        # Right eye
-    (48.0252, 71.7366,),        # Nose tip
-    (33.5493, 92.3655,),        # Mouth left corner
-    (62.7299, 92.2041,),        # Mouth right corner
-]) + np.array([16, 8])
+coord5points = {
+    'p': np.array([
+            (30.2946, 51.6963,),        # Left eye
+            (65.5318, 51.5014,),        # Right eye
+            (48.0252, 71.7366,),        # Nose tip
+            (33.5493, 92.3655,),        # Mouth left corner
+            (62.7299, 92.2041,),        # Mouth right corner
+        ]) + np.array([16, 8]),          # [16, 8] is an offset, and i forget why i add it, just leave it alone
+    'c': np.array([
+            (30.2946, 51.6963,),        # Left eye
+            (65.5318, 51.5014,),        # Right eye
+            (48.5851, 79.0356,),        # Nose tip
+            (31.4217, 98.5210,),        # Mouth left corner
+            (66.2410, 98.4563,),        # Mouth right corner
+        ]) + np.array([16, 8]),          # [16, 8] is an offset, and i forget why i add it, just leave it alone
+}
 
 imgSize *= 4
-coord5point *= 4
+for key, value in coord5points.items():
+    coord5points[key] = value * 4
 
 # change imgSize to tuple
 imgSize = tuple(map(int, imgSize))
@@ -41,11 +51,11 @@ def get_img5point(landmark):
     ])
 
 
-def warp_img(img, landmark):
+def warp_img(img, landmark, image_type):
     img5point = get_img5point(landmark)
 
     img = img.astype(np.uint8)
-    M = cv2.estimateRigidTransform(img5point, coord5point, fullAffine=True)
+    M = cv2.estimateRigidTransform(img5point, coord5points[image_type], fullAffine=True)
     img = cv2.warpAffine(img, M, imgSize)
     
     landmark = np.array(landmark)
@@ -79,13 +89,13 @@ def generate_dataset_face_frontalization():
     for people_name, image_type, image_name, landmark in tqdm(dataset_iterator(config.WC_original_dataset_name)):
         im_str = get_image(config.WC_original_dataset_name, people_name, image_name, show_landmark=0)
         im = im_str_to_np(im_str)
-        im, landmark = warp_img(im, landmark)
+        im, landmark = warp_img(im, landmark, image_type)
 
         people_name = people_name.replace('_', ' ')
         file_dir = os.path.join(new_images_dir, people_name)
         os.makedirs(file_dir, exist_ok=True)
-        os.chdir(file_dir)
-        if not cv2.imwrite(image_name+'.jpg', im):
+        # os.chdir(file_dir)
+        if not cv2.imwrite(os.path.join(file_dir, image_name+'.jpg'), im):
             assert 0, "cv2.imwrite failed"
 
         file_dir = os.path.join(new_landmarks_dir, people_name)
