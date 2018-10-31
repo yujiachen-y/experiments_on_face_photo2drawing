@@ -4,3 +4,6 @@
 [submodule "codes/3rdparty/CycleGAN"]
 	path = codes/3rdparty/CycleGAN
 	url = https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix.git
+[submodule "codes/3rdparty/fid"]
+	path = codes/3rdparty/fid
+	url = https://github.com/mseitzer/pytorch-fid.git
