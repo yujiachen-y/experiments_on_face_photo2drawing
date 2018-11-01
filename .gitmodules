@@ -7,3 +7,6 @@
 [submodule "codes/3rdparty/pytorch-fid"]
 	path = codes/3rdparty/pytorch-fid
 	url = https://github.com/mseitzer/pytorch-fid.git
+[submodule "codes/3rdparty/TTUR"]
+	path = codes/3rdparty/TTUR
+	url = https://github.com/bioinf-jku/TTUR.git
