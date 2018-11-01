@@ -261,10 +261,9 @@ if __name__ == '__main__':
     #     generate_dataset_pose_filter()
     # elif args.landmark_filter:
     #     generate_dataset_landmark_filter()
-    # from .datas import get_missing_file
-    # r = 0.30
-    # while r <= 1:
-    #     new_dataset_names = generate_dataset_landmark_filter(r)
-    #     print(r, get_missing_file(new_dataset_names[0])['count'])
-    #     r += 0.05
-    generate_dataset_landmark_filter(0.10)
+    from .datas import get_missing_file
+    r = 0.05
+    while r <= 1:
+        new_dataset_names = generate_dataset_landmark_filter(r)
+        print(r, get_missing_file(new_dataset_names[0])['count'])
+        r += 0.05

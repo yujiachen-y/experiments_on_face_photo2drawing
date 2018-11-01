@@ -171,7 +171,6 @@ def get_pose(dataset_name, people_name, image_name):
     return pose_estimation(image, landmark, type=0)
 
 
-@lru_cache(maxsize=config.cache_size)
 def get_missing_file(dataset_name):
     def get_current_dict(path):
         if os.path.normpath(path) == protocols_path:
@@ -254,9 +253,9 @@ def get_missing_file(dataset_name):
         config.datasetviewer_dir_name,
         dataset_name,
     )
-    if os.path.exists(file_path):
-        with open(file_path, 'rb') as f:
-            return pickle.load(f)
+    # if os.path.exists(file_path):
+    #     with open(file_path, 'rb') as f:
+    #         return pickle.load(f)
     
     from collections import OrderedDict
     result = OrderedDict()
@@ -272,10 +271,10 @@ def get_missing_file(dataset_name):
             t[f] = count_missing_file(os.path.join(roots, f))
 
     result = statisitic_result(result)
-    file_dir = os.path.split(file_path)[0]
-    os.makedirs(file_dir, exist_ok=True)
-    with open(file_path, 'wb') as file:
-        pickle.dump(result, file)
+    # file_dir = os.path.split(file_path)[0]
+    # os.makedirs(file_dir, exist_ok=True)
+    # with open(file_path, 'wb') as file:
+    #     pickle.dump(result, file)
     return result
 
 

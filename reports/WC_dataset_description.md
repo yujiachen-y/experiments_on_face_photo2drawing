@@ -138,6 +138,18 @@ where 'X' ranges from 1 to 10, corresponding to 10 folds. A "FR_TrainX.txt" cont
 - 数据筛选：踢掉一些难度过高的数据，然后考虑如何处理筛选出的数据
 - 不对数据集进行处理
 
+## 画像landmark预估计
+！！需要重新排布这一段落，然后说明预估计的理由！！
+先根据两眼的位置，对初筛后的数据集进行转正[9]，然后对剩下的3个landmark进行异常点处理，随后对剩下点取均值得到对应的landmark值作为参照点。
+得到的其他画像landmark为
+| Landmark Coordinate |      Meaning       |
+| :-----------------: | :----------------: |
+|  30.2946, 51.6963   |      Left eye      |
+|  65.5318, 51.5014   |     Right eye      |
+|  63.58514076, 79.0355658   |      Nose tip      |
+|  46.42166203, 98.52104826   | Mouth left corner  |
+|  81.24095123, 98.45631264   | Mouth right corner |
+
 ## 人脸转正
 
 首先选择了[7]的代码示例[8]中用到的5个点作为landmark，分别为
@@ -214,7 +226,19 @@ where 'X' ranges from 1 to 10, corresponding to 10 folds. A "FR_TrainX.txt" cont
 | 0.35  |    9099    |     50302      |     24.26%     |
 | 0.40  |    9100    |     20284      |     24.25%     |
 
-因此看到$r$值的最佳选择是0.10
+因此看到$r$值的最佳选择是0.10，此时的$r$值大小可以接受，保留的图片也尽可能地多，在此设置下，保留的画像为3508张（筛去了2534张），保留的照片为5530张（筛去了444张），可以见到大部分被筛除的图像为画像，我认为在此条件下，可以通过指定画像的标准landmark来提高数据集的利用率。
+
+随后这边重新统计了landmark，再次对$r$值进行灵敏度分析。得到如下结果
+| $r$值 | 保留图片数 | 缺失评价标准数 | 评价标准缺少率 |
+| :---: | :--------: | :------------: | :------------: |
+| 0.05  |    8261    |     64729      |     31.24%     |
+| 0.10  |    8990    |     52178      |     25.17%     |
+| 0.15  |    9159    |     49253      |     23.76%     |
+| 0.20  |    9190    |     48719      |     23.50%     |
+| 0.25  |    9210    |     48375      |     23.33%     |
+| 0.30  |    9219    |     48222      |     23.26%     |
+| 0.35  |    9225    |     48119      |     23.21%     |
+可以看到此时$r$值得最佳选择应该是0.15，但是在此设置下，保留的画像为3628张（筛去了2414张），保留的照片为5531张（筛去了443张），画像依然被筛除了大部分，**我个人认为这个问题难以解决的原因是因为在目前的特征空间下，数据集的画像图片是多模态分布的，因此我们无法保留下大部分图片。如何寻找画像的特征空间，如何收集画像数据依然是一个难题。**
 
 ### ~~剔除和照片相似的画像~~
 
@@ -243,6 +267,8 @@ where 'X' ranges from 1 to 10, corresponding to 10 folds. A "FR_TrainX.txt" cont
 
 [6] T. Bolkart, S. Wuhrer, Statistical Analysis of 3D Faces in Motion, 3D Vision, 2013, pages 103-110
 
-[7]Liu W, Wen Y, Yu Z, et al. Sphereface: Deep hypersphere embedding for face recognition[C]//The IEEE Conference on Computer Vision and Pattern Recognition (CVPR). 2017, 1: 1.
+[7] Liu W, Wen Y, Yu Z, et al. Sphereface: Deep hypersphere embedding for face recognition[C]//The IEEE Conference on Computer Vision and Pattern Recognition (CVPR). 2017, 1: 1.
 
-[8]Liu W, Wen Y, Yu Z, et al. wy1iu/sphereface[EB/OL]. GitHub, 2018. (2018)[2018 -10 -15]. https://github.com/wy1iu/sphereface/blob/master/preprocess/code/face_align_demo.m#L22.
+[8] Liu W, Wen Y, Yu Z, et al. wy1iu/sphereface[EB/OL]. GitHub, 2018. (2018)[2018 -10 -15]. https://github.com/wy1iu/sphereface/blob/master/preprocess/code/face_align_demo.m#L22.
+
+[9] LearnOpenCV学习——平均脸 - GraceDD的博客 - CSDN博客[EB/OL]. Blog.csdn.net, 2018. (2018)[2018 -10 -31]. https://blog.csdn.net/GraceDD/article/details/51382952.
