@@ -25,7 +25,7 @@ def save_statistics(src, dst, cuda):
 
 
 def train_with_fid(args, train_main_func):
-    train_main = train_main_func(args)
+    train_main = train_main_func(args, yield_mode=True)
     fids = None
 
     while True:
@@ -68,7 +68,7 @@ if __name__ == '__main__':
     os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
 
     if args.precalu:
-        save_statistics(args.fid_src, args.fid_dst, args.cuda != '')
+        save_statistics(args.fid_src, args.fid_dst, args.gpu != '')
     else :
         try:
             from train import main as train_main_func
