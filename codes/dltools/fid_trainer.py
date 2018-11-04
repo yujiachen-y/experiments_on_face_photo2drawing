@@ -57,6 +57,9 @@ if __name__ == '__main__':
                         help='image directory when precalculate fid statstics')
     parser.add_argument('--fid_dst',
                         help='file path which to store mu and sigma when precalculate fid statstics')
+    # fid paths which will be used in train_with_fid()
+    parser.add_argument('--fid_a_path')
+    parser.add_argument('--fid_b_path')
     # MUNIT
     parser.add_argument('--config', type=str, default='configs/edges2handbags_folder.yaml', help='Path to the config file.')
     parser.add_argument('--output_path', type=str, default='.', help="outputs path")
