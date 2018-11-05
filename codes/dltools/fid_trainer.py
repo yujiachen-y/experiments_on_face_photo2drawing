@@ -32,13 +32,13 @@ def train_with_fid(args, train_main_func):
         try:
             paths = train_main.send(fids)
             fids = {
-                'a_recon_fid': fid_score.calculate_fid_given_paths([args.fid_a_path, paths[0]],
+                'a_recon_fid': fid_score.calculate_fid_given_paths([paths[4], paths[0]],
                                                                    batch_size, args.gpu != '', dims),
-                'ab_fid': fid_score.calculate_fid_given_paths([args.fid_b_path, paths[1]],
+                'ab_fid': fid_score.calculate_fid_given_paths([paths[5], paths[1]],
                                                               batch_size, args.gpu != '', dims),
-                'b_recon_fid': fid_score.calculate_fid_given_paths([args.fid_b_path, paths[2]],
+                'b_recon_fid': fid_score.calculate_fid_given_paths([paths[5], paths[2]],
                                                                    batch_size, args.gpu != '', dims),
-                'ba_fid': fid_score.calculate_fid_given_paths([args.fid_a_path, paths[3]],
+                'ba_fid': fid_score.calculate_fid_given_paths([paths[4], paths[3]],
                                                               batch_size, args.gpu != '', dims)
             }
         except StopIteration:
@@ -57,9 +57,6 @@ if __name__ == '__main__':
                         help='image directory when precalculate fid statstics')
     parser.add_argument('--fid_dst',
                         help='file path which to store mu and sigma when precalculate fid statstics')
-    # fid paths which will be used in train_with_fid()
-    parser.add_argument('--fid_a_path')
-    parser.add_argument('--fid_b_path')
     # MUNIT
     parser.add_argument('--config', type=str, default='configs/edges2handbags_folder.yaml', help='Path to the config file.')
     parser.add_argument('--output_path', type=str, default='.', help="outputs path")
