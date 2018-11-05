@@ -35,61 +35,19 @@
 ## 评价方案
 对所有4个评价方案的实验设置，有2种设置(two views)。设置1(View 1)中的数据只应该用来调整参数，设置2(View 2)中的数据用来评估模型的性能。
 
-**数据集中的说明在此不翻译**
+**数据集中的说明在此不翻译，如有需要请自行查看数据集中的Readme.txt文件**
 
 ### 严格漫画验证
-文件夹"EvaluationProtocols\FaceVerification\Restricted"下有3个文件。
-"RestrictedView1_DevTrain.txt" 和 "RestrictedView1_DevTest.txt"属于设置1，只能用来调整参数。
-"RestrictedView2.txt"可以用来做模型评估。
-
-In both "RestrictedView1_DevTrain.txt" and "RestrictedView1_DevTest.txt", the first line gives the number of both matched and mismatched pairs. For example, 100 means there are 100 matched pairs and 100 mismatched pairs. The following lines gives the matched and mismatched pairs. Each line contains a matched pair or a mismatched pair.
-
-For example, "Adele Laurie Blue Adkins	C00001	P00001" means the caricature filename of "C00001" of "Adele Laurie Blue Adkins" and the photo filename of "P00001" of "Adele Laurie Blue Adkins" are from a matched pair.
-"Elizabeth Taylor	C00039	Jennifer Aniston	P00006" means the caricature filename of "C00039" of "Elizabeth Taylor" and the photo filename of "P00006" of "Jennifer Aniston" are from a mismatched pair.
-
-在用设置1的实验确定了参数以后，我们用设置2进行性能评估。
-In "RestrictedView2.txt", there are ten folds. For each fold, the first line gives the number of matched and mismatched pairs, followed by information of matched and mismatched pairs. For result reporting, 9 folds of the pairs should be used for training and the remaining fold for testing. This process should be repeated for ten times.
+略，请自行查阅Readme.txt
 
 ### 非严格漫画验证
-严格漫画验证和非严格漫画验证的主要区别是，在严格验证下，只有数据集指定的图片对可以用来训练。但是，在非严格验证下，实验人员可以自主构建图片对来进行训练。
-
-文件夹"EvaluationProtocols\FaceVerification\UnRestricted"下有3个文件。
-"UnRestrictedView1_DevTrain.txt" 和 "UnRestrictedView1_DevTest.txt"属于设置1，只能用来调整参数。
-"UnRestrictedView2.txt"可以用来做模型评估。
-
-In both "UnRestrictedView1_DevTrain.txt" and "UnRestrictedView1_DevTest.txt", the first line gives the number of subjects that can be used for training or testing. For example, 20 means there are 20 subjects that can be used for training or testing. The following lines give the names of the subjects, their caricature numbers and photo numbers. Each line contains a name and two numbers, the first number is the subject's caricature number, and the second number is the subject's photo number.
-
-For example, "Jeff Bridges	35	25" means Jeff Bridges has 35 caricatures and 25 caricatures. All these images can be used for either training or testing.
-
-In "UnRestrictedView2.txt", there are ten folds. For each fold, the first line also gives the number of subjects in that fold, followed by a few lines, with each line containing a name of the subject, its number of caricatures and its number of photos. For result reporting, 9 folds of the subjects should be used for training and the remaining fold for testing. On the testing fold, all the same-person and different-person pairs should be constructed for result reporting. This process should be repeated for ten times. 
+略，请自行查阅Readme.txt
 
 ### 漫画-照片识别
-Files of View 1 include:
--"EvaluationProtocols\FaceIdentification\FR_Train_dev.txt" 
--"EvaluationProtocols\FaceIdentification\C2P\FR_Gallery_C2P_dev.txt" 
--"EvaluationProtocols\FaceIdentification\C2P\FR_Probe_C2P_dev.txt"
-View 1 is used for parameter tuning. "FR_Train_dev.txt" can be used for training. "FR_Gallery_C2P_dev.txt" and "FR_Probe_C2P_dev.txt" can be used for evaluation while tuning parameters. 
-"FR_Train_dev.txt" contains a few lines, with each line containing a name of the subject, its number of caricatures and its number of photos. All the caricatures and photos of the subject can be used for training. For evaluation of models during parameter tuning stage, "FR_Gallery_C2P_dev.txt" contains filenames of images that can be used as gallery. It is a set of photos. "FR_Probe_C2P_dev.txt" contains filenames of images that can be used as probes. It is a set of caricatures.  
-
-Files of View 2 include:
--"EvaluationProtocols\FaceIdentification\FR_TrainX.txt"
--"EvaluationProtocols\FaceIdentification\C2P\FR_Gallery_C2PX.txt"
--"EvaluationProtocols\FaceIdentification\C2P\FR_Probe_C2PX.txt" 
-where 'X' ranges from 1 to 10, corresponding to 10 folds. A "FR_TrainX.txt" contains a few lines, with each line containing a name of the subject, its number of caricatures and its number of photos. All the caricatures and photos of the subject can be used for training. Then the corresponding "FR_Gallery_C2PX.txt", "FR_Probe_C2PX.txt" should be used for testing. This process should be done ten times for result reporting.
+略，请自行查阅Readme.txt
 
 ### 照片-漫画识别
-Files of View 1 include:
--"EvaluationProtocols\FaceIdentification\FR_Train_dev.txt" 
--"EvaluationProtocols\FaceIdentification\P2C\FR_Gallery_P2C_dev.txt" 
--"EvaluationProtocols\FaceIdentification\P2C\FR_Probe_P2C_dev.txt"
-View 1 is used for parameter tuning. "FR_Train_dev.txt" can be used for training. "FR_Gallery_P2C_dev.txt" and "FR_Probe_P2C_dev.txt" can be used for evaluation while tuning parameters. 
-"FR_Train_dev.txt" contains a few lines, with each line containing a name of the subject, its number of caricatures and its number of photos. All the caricatures and photos of the subject can be used for training. For evaluation of models during parameter tuning stage, "FR_Gallery_P2C_dev.txt" contains filenames of images that can be used as gallery. It is a set of caricatures. "FR_Probe_P2C_dev.txt" contains filenames of images that can be used as probes. It is a set of photos.  
-
-Files of View 2 include:
--"EvaluationProtocols\FaceIdentification\FR_TrainX.txt"
--"EvaluationProtocols\FaceIdentification\P2C\FR_Gallery_P2CX.txt"
--"EvaluationProtocols\FaceIdentification\P2C\FR_Probe_P2CX.txt"
-where 'X' ranges from 1 to 10, corresponding to 10 folds. A "FR_TrainX.txt" contains a few lines, with each line containing a name of the subject, its number of caricatures and its number of photos. All the caricatures and photos of the subject can be used for training. Then the corresponding "FR_Gallery_P2CX.txt", "FR_Probe_P2CX.txt" should be used for testing. This process should be done ten times for result reporting.
+略，请自行查阅Readme.txt
 
 ## 注意：
 1. 该数据集只能用于学术目的
@@ -113,11 +71,11 @@ where 'X' ranges from 1 to 10, corresponding to 10 folds. A "FR_TrainX.txt" cont
 - 文章建议Caricature Verification任务的评测指标是ROC的AUC、FAR=0.1%时的验证正确率和FAR=1%时的验证正确率
 - 文章建议Caricature Identification任务的评测指标是CMC中的rank-1和rank-10
 - 文章建议的评测方法是用10-fold的交叉验证，对10次得到的最终结果取平均得到最终评测结果
-- **文章没有给出制定上述评价方案的依据**，自己读完了论文之后，感觉数据集对我仍像黑盒一样未知
+- **文章没有给出制定上述评价方案的依据**，自己认为如果给出相关的依据，会利于人们对数据集设置的理解
 
 ### 识别框架
 #### landmark标记
-画像是用手工标记的，落实到框架里如何标记目前没有解决方案，**自己感觉画像的landmark标记可以单独作为一个课题拿出来做**
+画像是用手工标记的，落实到框架里如何标记目前没有解决方案，**自己感觉如何正确标记出画像的landmark可以单独作为一个课题拿出来做**
 
 #### 脸部对齐
 文章采用了三个方案，具体的操作和参数见论文
@@ -126,11 +84,12 @@ where 'X' ranges from 1 to 10, corresponding to 10 folds. A "FR_TrainX.txt" cont
 3 根据脸外围的4个轮廓点，把脸裁出来
 
 #### 匹配算法
-作者多次提到了自己的跨模态尺度学习方法[2]，有空看一看。不过我们的工作是图像翻译相关的，所以可能帮助不会很大。
+- [ ] 作者多次提到了自己的跨模态尺度学习方法[2]，有空看一看。
 
 ## Balseline表现
 具体数据见原文。
-文中说到了第2中脸部对齐方法在传统模型里的表现最好，但是不适合应用在深度学习里，所以就没做相关实验，但是文中后面明确说了实验没有fine tune vgg face，而是直接用的vgg face的原参数，我觉得是论文作者不想花时间重新训一个模型所以没有验证第2个方法的表现。
+
+文中说到了第2中脸部对齐方法在传统模型里的表现最好，但是不适合应用在深度学习里，所以就没做相关实验，以及文中后面明确说了实验没有fine tune vgg face，而是直接用的vgg face的原参数。
 
 # 数据集处理
 因为图像生成任务本身有一定难度，所以预处理数据集，来简化模型的任务也是一个需要仔细考虑的问题，目前打算有如下对数据集进行处理的打算。
@@ -138,21 +97,17 @@ where 'X' ranges from 1 to 10, corresponding to 10 folds. A "FR_TrainX.txt" cont
 - 数据筛选：踢掉一些难度过高的数据，然后考虑如何处理筛选出的数据
 - 不对数据集进行处理
 
-## 画像landmark预估计
-！！需要重新排布这一段落，然后说明预估计的理由！！
-先根据两眼的位置，对初筛后的数据集进行转正[9]，然后对剩下的3个landmark进行异常点处理，随后对剩下点取均值得到对应的landmark值作为参照点。
-得到的其他画像landmark为
-| Landmark Coordinate |      Meaning       |
-| :-----------------: | :----------------: |
-|  30.2946, 51.6963   |      Left eye      |
-|  65.5318, 51.5014   |     Right eye      |
-|  63.58514076, 79.0355658   |      Nose tip      |
-|  46.42166203, 98.52104826   | Mouth left corner  |
-|  81.24095123, 98.45631264   | Mouth right corner |
-
 ## 人脸转正
 
-首先选择了[7]的代码示例[8]中用到的5个点作为landmark，分别为
+**为什么要进行人脸转正？**
+
+关于人脸转正是否能帮助人脸识别网络识别人脸是有争议的[需要引用]，但是不能否认的是现在绝大多数人脸识别网络都对输入图像做了人脸转正[需要引用]。但不可否认的是，当网络中存在类似fc这种需要感知图片全局信息的模块时，人脸转正可以让输入规范化，让网络更好地理解输入的语义信息。
+
+对许多GAN而言，都会有一个噪声经过fc层变为高维特征的过程，此时噪声的每一个维度都对应着生成图片的某一个特征（这也是为什么噪声可以线性组合的原因之一）。因此对图像进行转正更符合GAN对高维特征进行编码的逻辑。
+
+### 第1次转正
+
+首先选择了[7]的代码示例[8]中用到的**5个点同时作为照片和画像的参照landmark**，分别为
 
 | Landmark Coordinate |      Meaning       |
 | :-----------------: | :----------------: |
@@ -168,12 +123,73 @@ where 'X' ranges from 1 to 10, corresponding to 10 folds. A "FR_TrainX.txt" cont
 
 ![](elements\frontalization_dataset_example_v1.png)
 
+### 剔除landmark不规范数据
+
+因为在前面引入了人脸转正，外加接下来的模型打算把人脸的landmark作为辅助信息来生成图片，因此用图形的landmark之间的位置关系来剔除数据是一个挺合理的方法。
+
+首先我们检查图片转正后landmark之间的位置关系是否是一个正脸，具体的判断逻辑见[代码](https://github.com/yjc567/graduation_project/blob/master/codes/mysite/datasetviewer/pose_estimation.py#L156#L191)，这个条件可以剔除大角度的侧脸。
+
+然后检查转正后的landmark是否在被裁减的图片中，这个条件可以剔除掉过于扭曲的画像。
+
+最后检查转中后的landmark和标准landmark[8]之间的距离是否在阈值$r$内（$r$表示转正后的landmark和参考的对应landmark为半径的圆面积占原图面积的比例），这个条件可以进一步降低网络学习的难度。
+
+**由此引申出了对$r$值的灵敏度分析：**
+
+为了进一步确定筛选数据标准对评价方法的影响，做以下实验：
+
+不断改变$r$值，得到评价标准中缺失数据的百分比
+
+| $r$值 | 保留图片数 | 缺失评价标准数 | 评价标准缺少率 |
+| :---: | :--------: | :------------: | :------------: |
+| 0.05  |    8550    |     59757      |     28.82%     |
+| 0.10  |    9038    |     51355      |     24.78%     |
+| 0.15  |    9077    |     50683      |     24.45%     |
+| 0.20  |    9084    |     50563      |     24.39%     |
+| 0.25  |    9092    |     50425      |     24.32%     |
+| 0.30  |    9095    |     50373      |     24.30%     |
+| 0.35  |    9099    |     50302      |     24.26%     |
+| 0.40  |    9100    |     20284      |     24.25%     |
+
+因此看到$r$值的最佳选择是0.10，此时的$r$值大小可以接受，保留的图片也尽可能地多，在此设置下，保留的画像为3508张（筛去了2534张），保留的照片为5530张（筛去了444张）。
+
+下面是一些被剔除的landmark不规范数据：
+
+![](elements\uncorrected_landmark_dataset_example_v1.png)
+
+### 第2次转正
+
+由上述的实验结论可以见到大部分被筛除的图像为画像，毕竟人脸画像的参考landmark肯定是和人脸照片的参考landmark有区别的。我认为在此条件下，可以通过指定画像的标准landmark来提高数据集的利用率。
+
+先根据两眼的位置，对原始数据集进行转正[9]，得到了两眼转正后的各个画像的landmark。然后对剩下的3个landmark分别进行异常点处理，这里使用了孤立森林算法剔除了一些数据[10]，随后对剩下各个点的坐标取均值，得到对应的landmark值作为参考。（值得注意的是，两个嘴角的landmark在水平线上并不是关于鼻尖的坐标对称的，这里我对两个嘴角的landmark进行了平移，使其在水平线上关于鼻尖对称，更符合人类观感）
+
+得到的其他画像landmark为
+| Landmark Coordinate |      Meaning       |
+| :-----------------: | :----------------: |
+|  30.2946, 51.6963   |      Left eye      |
+|  65.5318, 51.5014   |     Right eye      |
+|  63.58514076, 79.0355658   |      Nose tip      |
+|  46.42166203, 98.52104826   | Mouth left corner  |
+|  81.24095123, 98.45631264   | Mouth right corner |
+
+随后这边重新统计了landmark，再次对$r$值进行灵敏度分析。得到如下结果
+| $r$值 | 保留图片数 | 缺失评价标准数 | 评价标准缺少率 |
+| :---: | :--------: | :------------: | :------------: |
+| 0.05  |    8261    |     64729      |     31.24%     |
+| 0.10  |    8990    |     52178      |     25.17%     |
+| 0.15  |    9159    |     49253      |     23.76%     |
+| 0.20  |    9190    |     48719      |     23.50%     |
+| 0.25  |    9210    |     48375      |     23.33%     |
+| 0.30  |    9219    |     48222      |     23.26%     |
+| 0.35  |    9225    |     48119      |     23.21%     |
+可以看到此时$r$值得最佳选择应该是0.15，但是在此设置下，保留的画像为3628张（筛去了2414张），保留的照片为5531张（筛去了443张），画像依然被筛除了大部分，**我个人认为这个问题难以解决的原因是因为在目前的特征空间下，数据集的画像图片是多模态分布的，因此我们无法保留下大部分图片。如何寻找画像的特征空间，如何收集画像数据依然是一个难题。**
+
 ## 数据筛选
+
 模型初步并不打算处理较难的数据，所以需要一些方法来剔除过难数据。
 
 ### ~~剔除大角度数据~~ 
 
-起初打算通过筛选大角度数据的方法来删除高难度数据，但是效果不好，加上后面找到了更合理的方法，放弃。
+**起初打算通过筛选大角度数据的方法来删除高难度数据，但是效果不好，放弃。但是这里记录一下当时筛选大角度数据的方法。**
 
 先根据参考[4]中的方法和参考[5]和[6]中的3-D人脸模型估算出每张图片中人脸的欧拉角度(pitch, yaw, roll)，欧拉角度的示意图如下：
 
@@ -191,68 +207,15 @@ where 'X' ranges from 1 to 10, corresponding to 10 folds. A "FR_TrainX.txt" cont
 
 也许在欧拉角度的计算方法不够优秀，目前算出人脸的欧拉角度还不够准确，外加上很多漫画图的人脸变形严重，偶尔会出现计算错误。
 
-计算出欧拉角度后，数据集的划分策略如下：
-
-1. yaw角度大于30度就直接剔除，效果还算不错，但也有正脸漫画被误判为侧脸的情况。
-
-### 剔除landmark不规范数据
-
-因为在前面引入了人脸转正，外加接下来的模型打算把人脸的landmark作为辅助信息来生成图片，因此用图形的landmark之间的位置关系来剔除数据是一个挺合理的方法。
-
-首先我们检查图片转正后landmark之间的位置关系是否是一个正脸，具体的判断逻辑见代码，这个条件可以剔除大角度的侧脸。
-
-然后检查转正后的landmark是否在被裁减的图片中，这个条件可以剔除掉过于扭曲的画像。
-
-最后检查转中后的landmark和标准landmark[8]之间的距离是否在阈值$r$内（$r$表示转正后的landmark和参考的对应landmark为半径的圆面积占原图面积的比例），这个条件可以进一步降低网络学习的难度。
-
-最后符合规范的数据有8550张图片。
-
-下面是一些被剔除的landmark不规范数据：
-
-![](elements\uncorrected_landmark_dataset_example_v1.png)
-
-为了进一步确定筛选数据标准对评价方法的影响，做以下实验：
-
-不断改变$r$值，得到评价标准中缺失数据的百分比
-
-| $r$值 | 保留图片数 | 缺失评价标准数 | 评价标准缺少率 |
-| :---: | :--------: | :------------: | :------------: |
-| 0.05  |    8550    |     59757      |     28.82%     |
-| 0.10  |    9038    |     51355      |     24.78%     |
-| 0.15  |    9077    |     50683      |     24.45%     |
-| 0.20  |    9084    |     50563      |     24.39%     |
-| 0.25  |    9092    |     50425      |     24.32%     |
-| 0.30  |    9095    |     50373      |     24.30%     |
-| 0.35  |    9099    |     50302      |     24.26%     |
-| 0.40  |    9100    |     20284      |     24.25%     |
-
-因此看到$r$值的最佳选择是0.10，此时的$r$值大小可以接受，保留的图片也尽可能地多，在此设置下，保留的画像为3508张（筛去了2534张），保留的照片为5530张（筛去了444张），可以见到大部分被筛除的图像为画像，我认为在此条件下，可以通过指定画像的标准landmark来提高数据集的利用率。
-
-随后这边重新统计了landmark，再次对$r$值进行灵敏度分析。得到如下结果
-| $r$值 | 保留图片数 | 缺失评价标准数 | 评价标准缺少率 |
-| :---: | :--------: | :------------: | :------------: |
-| 0.05  |    8261    |     64729      |     31.24%     |
-| 0.10  |    8990    |     52178      |     25.17%     |
-| 0.15  |    9159    |     49253      |     23.76%     |
-| 0.20  |    9190    |     48719      |     23.50%     |
-| 0.25  |    9210    |     48375      |     23.33%     |
-| 0.30  |    9219    |     48222      |     23.26%     |
-| 0.35  |    9225    |     48119      |     23.21%     |
-可以看到此时$r$值得最佳选择应该是0.15，但是在此设置下，保留的画像为3628张（筛去了2414张），保留的照片为5531张（筛去了443张），画像依然被筛除了大部分，**我个人认为这个问题难以解决的原因是因为在目前的特征空间下，数据集的画像图片是多模态分布的，因此我们无法保留下大部分图片。如何寻找画像的特征空间，如何收集画像数据依然是一个难题。**
-
-### ~~剔除和照片相似的画像~~
-
-剔除和照片相似的画像可以进一步让网络理解我们需要其完成的任务，但是目前来看，只有通过人眼审核才能剔除此类数据，工作量过大，还需要标注工具的开发，因此目前先不进行这项工作，希望数据不会过于不纯。
+计算出欧拉角度后，如果一个图像的yaw角度大于30度就直接剔除，效果还算不错，但也有正脸漫画被误判为侧脸的情况。
 
 ## 数据集划分
 
-预计明天处理。
+对得到的数据集，自己按照接近$8:2$的比例随机出了训练集和测试集，也许需要一个更科学的数据集划分方法。
 
-# DatasetViewer
-
-自己写了一个Django app来显示数据集，过段时间后会配置在服务器上。
-
-![](elements\DatasetViewer_example_v1.png)
+# 未来展望
+- [ ] 探究画像的landmark标记方法
+- [ ] 探究如何寻找画像的特征空间，把不同风格的画像放在一个统一的模态下
 
 # 参考
 [1] Jing Huo, Wenbin Li, Yinghuan Shi, Yang Gao and Hujun Yin, "WebCaricature: A Benchmark for Caricature Recognition", British Machine Vision Conference, 2018.
@@ -272,3 +235,5 @@ where 'X' ranges from 1 to 10, corresponding to 10 folds. A "FR_TrainX.txt" cont
 [8] Liu W, Wen Y, Yu Z, et al. wy1iu/sphereface[EB/OL]. GitHub, 2018. (2018)[2018 -10 -15]. https://github.com/wy1iu/sphereface/blob/master/preprocess/code/face_align_demo.m#L22.
 
 [9] LearnOpenCV学习——平均脸 - GraceDD的博客 - CSDN博客[EB/OL]. Blog.csdn.net, 2018. (2018)[2018 -10 -31]. https://blog.csdn.net/GraceDD/article/details/51382952.
+
+[10] Liu F T, Ting K M, Zhou Z H. Isolation forest[C]//2008 Eighth IEEE International Conference on Data Mining. IEEE, 2008: 413-422.
