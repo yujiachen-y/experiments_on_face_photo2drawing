@@ -1,6 +1,6 @@
 [submodule "codes/3rdparty/MUNIT"]
 	path = codes/3rdparty/MUNIT
-	url = https://github.com/yjc567/MUNIT.git
+	url = git@github.com:yjc567/MUNIT.git
 [submodule "codes/3rdparty/CycleGAN"]
 	path = codes/3rdparty/CycleGAN
 	url = https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix.git
