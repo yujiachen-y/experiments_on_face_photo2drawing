@@ -7,6 +7,7 @@
 # 评价方法
 
 ## GAN评价方法
+
 ### fid
 [1]中对各种GAN评价方法进行了详尽分析，认为fid[2]是目前所有评价方法中，比较合理的一个选择。fid的结果和人类对图片的观感有一定的相关性，可以检测出训练工程中的异常，也对损坏图像敏感[2]，而且其计算效率也较高。
 
@@ -54,8 +55,75 @@ $$
 ## 总结
 因为人脸照片-画像转化工作需要生成真实图像的同时保存身份信息，所以需要GAN评价方法和人脸识别评价方法两个一起评测。对GAN可以使用fid方法评测，考虑到目前数据集过小，可以同时用1NN分类器进行评测，另外对生成的人脸，可以用人脸识别评价方法来判断生成人脸的身份特征被保留的程度。
 
+# 数据集检测
+
+## fid
+
+在实验开始前针对预处理好的数据集计算了fid，对应值如下：
+
+- 训练集中caricature和photo之间的fid为：$85.995$
+- 测试集中caricature和photo之间的fid为：$100.054$
+- 训练集和测试集中两个caricature之间的fid为：$33.896$
+- 训练集和测试集中两个photo之间的fid为：$18.553$
+
+## 1近邻分类器
+
+自己担心数据集过小，会不会导致fid的表现有误差，根据[5]中的实验现象，fid在小数据上还是有一定偏差的，以及[2]中也建议fid的计算时至少需要10000张图片，不然fid值是估计不足的。
+
+因此1近邻分类器在此实验中可以起到对照和增强实验严谨性的作用。
+
+## 人脸识别评价
+
+为了说明这项工作生成人脸的可识别程度，应该添加对应的人脸识别评价指标，来说明网络对人脸信息的保留能力。
+
+不过这个工作有些复杂，首先是网络如何识别画像，是否需要fine-tuning，画像的数量是否够多来支持fine-tuning？其次还有很多实现上的细节可能会让我们花费太多的时间。所以为了尽快完成毕业设计，这一块先放着不做。
+
+
 # 相关工作
-本段枚举一些相关工作被应用在人脸照片-画像转换时的表现。因为时间问题，下次提交报告时补充。
+
+本人的开题报告中已有相关工作的整体介绍，在此就不赘述。接下来详细介绍一下MUNIT和CycleGAN在此任务上的表现。
+
+## MUNIT
+
+### 数据预处理
+
+网络对读入的数据的处理方式是一个需要注意点的，一个图片时会经过如下的预处理流程
+
+1. 把图像变成大小为$(C, H, W)$，值为$[0.0, 1.0]$之间的张量
+2. 对图像进行归一化，把3个channel的均值和方差设置为$(0.5, 0.5)$
+3. 对图像进行随机的裁切，并缩放到指定的大小
+4. 以$0.5$的概率对图像进行随机的水平翻转
+
+### 实验设置
+
+实验设置与论文[10]中的一致。
+
+### 测试结果
+
+目前正在训练中，可见[实时训练图片](http://server.yujiachen.top:6001/graduation_project/support_material/MUNIT/outputs/WebCaricature_transfer_a20fc474b7078d57d2145212f40e996140e30d32/)和[tensorboard](http://server.yujiachen.top:8081/)，其中查看实施训练图片需要的账户是mil，密码是milamax1080。
+
+## CycleGAN
+
+CycleGAN的实验正在设置中。
+
+# 未来工作
+
+- [ ] 添加1近邻分类器的分类结果作为参照，增强实验的可信程度。（自己已做的实验都存下了每个阶段的模型和对应的测试集输出，所以这个做一做还是很快的，但是自己赶着完成毕设，这一段就不做了）
+- [ ] 对工作生成的人脸进行人脸识别的相关指标评价，说明网络对人脸信息的保留能力。
+
+# 参考文献说明
+## 参考1：Pros and Cons of GAN Evaluation Measures
+该文分析了24种定量方法和5种定性方法，并列出了各种方法在评价GAN模型时的优缺点、注意事项和相关参考文献。以此希望为GAN的评价工作提供一个详尽的参考。
+
+## 参考5：An empirical study on evaluation metrics of generative adversarial networks
+该文以实验结果为结论，设计了Mode Collapsing、Mode Dropping、图像变形、数据集过小、数据集过大、模型过拟合等情况发生时，The Inception Score, Kernel MMD, Wasserstein distance, Frechet Inception Distance, 1-NN classifier这6个评价方法在实验中的表现。
+
+自己看了这篇文章后，才发现之前一直对Mode Collapsing、Mode Dropping、模型过拟合这3个现象有不理解和混淆之处，这里可以记录一下3个现象的区别
+
+- Mode Collapsing：模式坍塌，指真实分布中一些相似的模式被generator理解成了一个模式，generator会把这些模式替代为一个"平均"的模式，[5]在实验中把数据集中的图片进行聚类，把一个聚类中的所有图片用聚类中心代替，以此来模拟Mode Collapsing。
+- Mode Dropping：模式丢失，指真实分布中一些可能过于复杂的模式没有被generator学习，generator不会生成符合某一模式的图片，[5]在实验中把数据集中的图片进行聚类，选择几个聚类中，删去这些聚类中的所有图片，以此来模拟Mode Dropping。
+- **个人理解，上述的Mode Collapsing 和Mode Dropping 都是模型学习欠拟合的表现。** 
+- Overfitting: 模型过拟合，指的是模型的学习能力太强，而训练时使用的数据集又太小，使得模型记住了训练集中的数据，此时模型在训练集上的表现会很好，但是在测试集上不会有很好的表现。
 
 # 参考
 [1] Borji A. Pros and Cons of GAN Evaluation Measures[J]. arXiv preprint arXiv:1802.03446, 2018.
@@ -76,16 +144,4 @@ $$
 
 [9] Parkhi O M, Vedaldi A, Zisserman A. Deep face recognition[C]//BMVC. 2015, 1(3): 6.
 
-# 参考文献说明
-## 参考1：Pros and Cons of GAN Evaluation Measures
-该文分析了24种定量方法和5种定性方法，并列出了各种方法在评价GAN模型时的优缺点、注意事项和相关参考文献。以此希望为GAN的评价工作提供一个详尽的参考。
-
-## 参考5：An empirical study on evaluation metrics of generative adversarial networks
-该文以实验结果为结论，设计了Mode Collapsing、Mode Dropping、图像变形、数据集过小、数据集过大、模型过拟合等情况发生时，The Inception Score, Kernel MMD, Wasserstein distance, Frechet Inception Distance, 1-NN classifier这6个评价方法在实验中的表现。
-
-自己看了这篇文章后，才发现之前一直对Mode Collapsing、Mode Dropping、模型过拟合这3个现象有不理解和混淆之处，这里可以记录一下3个现象的区别
-
-- Mode Collapsing：模式坍塌，指真实分布中一些相似的模式被generator理解成了一个模式，generator会把这些模式替代为一个"平均"的模式，[5]在实验中把数据集中的图片进行聚类，把一个聚类中的所有图片用聚类中心代替，以此来模拟Mode Collapsing。
-- Mode Dropping：模式丢失，指真实分布中一些可能过于复杂的模式没有被generator学习，generator不会生成符合某一模式的图片，[5]在实验中把数据集中的图片进行聚类，选择几个聚类中，删去这些聚类中的所有图片，以此来模拟Mode Dropping。
-- **个人理解，上述的Mode Collapsing 和Mode Dropping 都是模型学习欠拟合的表现。** 
-- Overfitting: 模型过拟合，指的是模型的学习能力太强，而训练时使用的数据集又太小，使得模型记住了训练集中的数据，此时模型在训练集上的表现会很好，但是在测试集上不会有很好的表现。
+[10] Huang X, Liu M Y, Belongie S, et al. Multimodal Unsupervised Image-to-Image Translation[J]. arXiv preprint arXiv:1804.04732, 2018.
