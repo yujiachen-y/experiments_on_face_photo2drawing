@@ -78,7 +78,6 @@ $$
 
 不过这个工作有些复杂，首先是网络如何识别画像，是否需要fine-tuning，画像的数量是否够多来支持fine-tuning？其次还有很多实现上的细节可能会让我们花费太多的时间。所以为了尽快完成毕业设计，这一块先放着不做。
 
-
 # 相关工作
 
 本人的开题报告中已有相关工作的整体介绍，在此就不赘述。接下来详细介绍一下MUNIT和CycleGAN在此任务上的表现。
@@ -104,7 +103,23 @@ $$
 
 ## CycleGAN
 
-CycleGAN的实验正在设置中。
+### 数据预处理
+
+在CycleGAN实验中，一个图像会经过如下的预处理流程：
+
+1. 把图像缩放到$(286, 286)$的大小
+2. 对图像进行随机的裁切，得到大小为$(256, 256)$的图片
+3. 以$0.5$的概率对图像进行随机的水平翻转
+4. 把图像变成大小为$(C, H, W)$，值为$[0.0, 1.0]$之间的张量
+5. 对图像进行归一化，把3个channel的均值和方差设置为$(0.5, 0.5)
+
+### 实验设置
+
+实验设置与论文[11, 12]中的源代码一致
+
+### 测试结果
+
+目前正在训练中
 
 # 未来工作
 
@@ -145,3 +160,7 @@ CycleGAN的实验正在设置中。
 [9] Parkhi O M, Vedaldi A, Zisserman A. Deep face recognition[C]//BMVC. 2015, 1(3): 6.
 
 [10] Huang X, Liu M Y, Belongie S, et al. Multimodal Unsupervised Image-to-Image Translation[J]. arXiv preprint arXiv:1804.04732, 2018.
+
+[11] Zhu J Y, Park T, Isola P, et al. Unpaired image-to-image translation using cycle-consistent adversarial networks[J]. arXiv preprint, 2017.
+
+[12] Isola P, Zhu J Y, Zhou T, et al. Image-to-image translation with conditional adversarial networks[J]. arXiv preprint, 2017.
