@@ -84,26 +84,122 @@ $$
 
 ## MUNIT
 
-### 数据预处理
+### 实验设置
 
-网络对读入的数据的处理方式是一个需要注意点的，一个图片时会经过如下的预处理流程
+实验设置与论文[10]中的一致。
+
+#### 数据预处理
 
 1. 把图像变成大小为$(C, H, W)$，值为$[0.0, 1.0]$之间的张量
 2. 对图像进行归一化，把3个channel的均值和方差设置为$(0.5, 0.5)$
 3. 对图像进行随机的裁切，并缩放到指定的大小
 4. 以$0.5$的概率对图像进行随机的水平翻转
 
-### 实验设置
+#### 网络结构
 
-实验设置与论文[10]中的一致。
+一个卷积块内部操作的排布是：卷积 - 归一化 - 非线性。
+
+##### 结构定义
+
+- c7s1-k 代表一个$7 \times 7$的卷积块，这个卷积块有$k$个滤波器，步长为$1$。
+
+- dk 代表一个$4 \times 4$的卷积块，这个卷积块有$k$个滤波器，步长为$2$。
+
+- Rk 代表一个残差卷积块，这个残差卷积块中含有两个$3 \times 3$的卷积块，每个卷积块有$k$个滤波器，步长为$1$。
+
+- uk 代表一个$2 \times 2$的最近邻上采样层和一个$5 \times 5$的卷积块，该卷积块有$k$个滤波器，步长为$1$。
+
+- GAP 代表一个全局池化层，把输入的特征大小变为$(1, 1)$。
+
+- fck 代表一个有$k$个滤波器的全连接层。
+
+##### 生成器
+
+- 非线性函数：ReLU
+- padding方法：reflect padding
+- 归一化方法：内容编码器使用了Instance Normalization，风格编码器没有使用归一化，解码器使用了Adaptive Instance Normalization
+
+**具体结构**
+
+- 内容编码器：c7s1-64, d128, d256, R256, R256, R256, R256
+- 风格编码器：c7s1-64, d128, d256, d256, d256, GAP, fc8
+- 解码器：R256, R256, R256, R256, u128, u64, c7s1-3
+
+##### 判别器
+
+- 非线性函数：Leaky ReLU，斜率为$0.2$
+- padding方法：reflection padding
+- 归一化方法：无
+
+**具体结构**
+
+d64, d128, d256, d512
+
+使用了3个不同规模，目标函数是LSGAN的判别器。
+
+#### 损失函数
+
+##### 重构损失
+
+$x_1, c_1, s_2$经过编码解码的过程后，保持不变。
+$$
+\mathcal{L}_{\rm{recon}}^{x_1} = \Bbb{E}_{x_1 \sim p(x_1)}[\left \| G_1(E^c_1(x_1), E^s_1(x_1))-x_1 \right \|_1] \tag 1
+$$
+
+$$
+\begin{align}
+\mathcal{L}_{\rm{recon}}^{c_1} = \Bbb{E}_{c_1 \sim p(c_1), s_2 \sim q(s_2)[\left \| E^c_2(G_2(c_1, s_2)) - c_1 \right \|_1]} \tag 2 \\
+\mathcal{L}_{\rm{recon}}^{s_2} = \Bbb{E}_{c_1 \sim p(c_1), s_2 \sim q(s_2)[\left \| E^s_2(G_2(c_1, s_2)) - s_2 \right \|_1]} \tag 3 \\
+\end{align}
+$$
+
+其中，$q(s_2)$来自正态分布$\mathcal{N}(0, \rm{I})$，$p(c_1)$中$c_1=E^c_1(x_1)$以及$x_1 \sim p(x_1)$。
+
+##### 对抗损失
+
+生成的图像符合真实图像的分布。要注意的是实验代码中实际使用的是LSGAN，因此公式(4)中的log操作符在实验中要换成均方误差。
+$$
+\mathcal{L}_{\rm{GAN}}^{x_2} = \Bbb{E}_{c1 \sim p(c_1), s_2 \sim q(s_2)[\mathrm{log}(1 - D_2(G_2(c_1, s_2)))]} + \Bbb{E}_{x_2 \sim p(x_2)}[\mathrm{log}D_2(x_2)] \tag 4
+$$
+
+##### 目标方程
+
+$$
+\min\limits_{E_1, E_2, G_1, G_2} \max\limits_{D_1, D_2} \mathcal{L}(E_1, E_2, G_1, G_2, D_1, D_2) = \mathcal{L}_\mathrm{GAN}^{x_1} + \mathcal{L}_\mathrm{GAN}^{x_2} + \\\lambda_x(\mathcal{L}_{\rm{recon}}^{x_1} + \mathcal{L}_{\rm{recon}}^{x_2}) + \lambda_c(\mathcal{L}_{\rm{recon}}^{c_1} + \mathcal{L}_{\rm{recon}}^{c_2}) + \lambda_s(\mathcal{L}_{\rm{recon}}^{s_1} + \mathcal{L}_{\rm{recon}}^{s_2}) \tag 5
+$$
+
+其中，$\lambda_x=10, \lambda_c=1, \lambda_s=1$
+
+另外，MUNIT的实际实验代码还在目标方程中添加了$x_1$和$x_2$的循环一致性损失，如下：
+
+##### 循环一致性损失
+
+图像$x_1$转到其他domain再次转回原domain后，保持不变。
+$$
+\mathcal{L}_{\mathrm{cc}}^{x_1} = \Bbb{E}_{x_1 \sim p(x_1), s_2 \sim q(s_2)}[\left \| G_1(E_2^c(G_2(E_1^c(x_1), s_2)), E_1^s(x_1)) - x_1 \right \|_1] \tag 6
+$$
+循环一致性损失在目标方程中的系数是$\lambda_{cc}=10$
+
+#### 超参数
+
+- 优化算法：Adam $\beta_1=0.5, \beta_2=0.999$
+- 学习率：初始值$0.0001$，每$100,000$次迭代学习率递减为原来的一半
+- batch size：每个batch包含$1$个图像
+- 迭代次数：$1,000,000$次，即遍历$1,000,000$个mini_batch后结束训练
+- 模型初始化：```torch.nn.init.kaiming_normal_(data, a=0, mode='fan_in', nonlinearity='leaky_relu')```[13]
+- style code：维度为$8$的一维向量
 
 ### 测试结果
 
-目前正在训练中，可见[实时训练图片](http://server.yujiachen.top:6001/graduation_project/support_material/MUNIT/outputs/WebCaricature_transfer_a20fc474b7078d57d2145212f40e996140e30d32/)和[tensorboard](http://server.yujiachen.top:8081/)，其中查看实施训练图片需要的账户是mil，密码是milamax1080。
+目前正在训练中
 
 ## CycleGAN
 
-### 数据预处理
+### 实验设置
+
+实验设置与论文[11, 12]中的源代码一致
+
+#### 数据预处理
 
 在CycleGAN实验中，一个图像会经过如下的预处理流程：
 
@@ -111,11 +207,90 @@ $$
 2. 对图像进行随机的裁切，得到大小为$(256, 256)$的图片
 3. 以$0.5$的概率对图像进行随机的水平翻转
 4. 把图像变成大小为$(C, H, W)$，值为$[0.0, 1.0]$之间的张量
-5. 对图像进行归一化，把3个channel的均值和方差设置为$(0.5, 0.5)
+5. 对图像进行归一化，把3个channel的均值和方差设置为$(0.5, 0.5)$
 
-### 实验设置
+#### 网络结构
 
-实验设置与论文[11, 12]中的源代码一致
+一个卷积块内部操作的排布是：卷积 - 归一化 - 非线性。
+
+##### 结构定义
+
+- c7s1-k 代表一个$7 \times 7$的卷积块，这个卷积块有$k$个滤波器，步长为$1$。
+
+- dk 代表一个$3 \times 3$的卷积块，这个卷积块有$k$个滤波器，步长为$2$。
+
+- Rk 代表一个残差卷积块，这个残差卷积块中含有两个$3 \times 3$的卷积块，每个卷积块有$k$个滤波器，步长为$1$。
+
+- uk 代表一个$2 \times 2$的最近邻上采样层和一个$3 \times 3$的卷积块，该卷积块有$k$个滤波器，步长为$1$。
+- Ck 代表一个$4 \times 4$的卷积块，这个卷积块有$k$个滤波器，步长为$2$。
+
+##### 生成器
+
+- 非线性函数：Leaky ReLU，斜率为$0.2$
+- padding方法：reflection padding
+- 归一化方法：Instance Normalization
+
+**具体结构**
+
+c7s1-32, d64, d128, R128, R128, R128, R128, R128, R128, R128, R128, R128, u64, u32, c7s1-3
+
+##### 判别器
+
+- 非线性函数：Leaky ReLU，斜率为$0.2$
+- padding方法：zero padding
+- 归一化方法：Instance Normalization
+
+使用了$70 \times 70$的PatchGANs[12]，并把目标函数设置为LSGAN。
+
+为了避免模型震荡[14]，判别器的更新采用了[15]中的策略：使用以前的生成图片作为判别器的输入，而不是现在的生成图像。具体在代码中的实现是：设置一个图片池，如果池的大小不到$50$，就把当前生成的图片存在图片池中，并把当前生成的图片作为判别器的输入；如果池的大小超过$50$，就用$0.5$的概率，决定要不要把当前的生成图片和池中的某一个图片交换，然后再作为判别器的输入。
+
+**具体结构**
+
+C64-C128-C256-C512
+
+注意：C64后面没有跟着任何归一化层。
+
+#### 损失函数
+
+##### 对抗损失
+
+生成的图像符合真实图像的分布。要注意的是实验代码中实际使用的是LSGAN，因此公式(4)中的log操作符在实验中要换成均方误差。
+$$
+\mathcal{L}_\text{GAN}(G, D_Y, X, Y) = \Bbb{E}_{y \sim p_{\text{data}(y)}}[\log D_Y(y)] +\Bbb{E}_{x \sim p_{\text{data}(x)}}[\log (1 - D_Y(G(x)))] \tag 7
+$$
+
+##### 循环一致性损失
+
+图像$x$和$y$转到其他domain再次转回原domain后，保持不变。
+$$
+\mathcal{L}_\text{cyc}(G, F) = \Bbb{E}_{x \sim p_{\text{data}(x)}}[\left \| F(G(x)) - x \right \|_1] +\Bbb{E}_{y \sim p_{\text{data}(y)}}[\left \| G(F(y)) - y \right \|_1] \tag 8
+$$
+
+##### 目标方程
+
+$$
+\arg\min_\limits{G,F}\max_\limits{D_x, D_y} \mathcal{L}(G, F, D_X, D_Y) = \mathcal{L}_\text{GAN}(G, D_Y, X, Y) + L_\text{GAN}(F, D_X, Y, X) + \lambda\mathcal{L}_\text{cyc}(G, F) \tag 9
+$$
+
+其中$\lambda=10$
+
+另外，CycleGAN的实验代码中还添加了身份损失，用来保证图片中的信息在转换后不会发生改变：
+
+##### 身份损失
+
+图像$x$和$y$转到其他domain后得到的图像，要和转换前的图像相似。
+$$
+\mathcal{L}_\text{idt}(G, F) = \Bbb{E}_{x \sim p_{\text{data}(x)}}[\left \| G(x) - x \right \|_1] + \Bbb{E}_{y \sim p_{\text{data}(y)}}[\left \| F(y) - y \right \|_1]
+$$
+因为身份损失和人脸照片-画像之间的转化不符合，所以自己在实验复现中设置其权重为$\lambda_{idt}=0$
+
+#### 超参数
+
+- 优化算法：Adam $\beta_1=0.5, \beta_2=0.999$
+- 学习率：初始值$0.0002$，训练到第$100$个epoch后，学习率开始线性递减，直到epoch$200$时，训练结束，学习率变为$0$
+- batch size：每个batch包含$1$个图像
+- 迭代次数：$200$ epoch，遍历完$200$次dataset后结束训练
+- 模型初始化：用正态分布$\mathcal{N}(\text{0}, \text{0.02})$来初始化模型，```torch.nn.init.normal_(data, mean=0, std=0.02)```[13]
 
 ### 测试结果
 
@@ -164,3 +339,9 @@ $$
 [11] Zhu J Y, Park T, Isola P, et al. Unpaired image-to-image translation using cycle-consistent adversarial networks[J]. arXiv preprint, 2017.
 
 [12] Isola P, Zhu J Y, Zhou T, et al. Image-to-image translation with conditional adversarial networks[J]. arXiv preprint, 2017.
+
+[13] He K, Zhang X, Ren S, et al. Delving deep into rectifiers: Surpassing human-level performance on imagenet classification[C]//Proceedings of the IEEE international conference on computer vision. 2015: 1026-1034.
+
+[14] Goodfellow I, Pouget-Abadie J, Mirza M, et al. Generative adversarial nets[C]//Advances in neural information processing systems. 2014: 2672-2680.
+
+[15] Shrivastava A, Pfister T, Tuzel O, et al. Learning from Simulated and Unsupervised Images through Adversarial Training[C]//CVPR. 2017, 2(4): 5.
