@@ -3,7 +3,7 @@
 	url = git@github.com:yjc567/MUNIT.git
 [submodule "codes/3rdparty/CycleGAN"]
 	path = codes/3rdparty/CycleGAN
-	url = https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix.git
+	url = git@github.com:yjc567/pytorch-CycleGAN-and-pix2pix.git
 [submodule "codes/3rdparty/pytorch-fid"]
 	path = codes/3rdparty/pytorch-fid
 	url = https://github.com/mseitzer/pytorch-fid.git
