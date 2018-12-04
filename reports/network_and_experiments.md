@@ -15,21 +15,32 @@
 ## 训练方法
 发现自己的训练代码跑起来总是比其他人的代码要慢，主要原因是batch数和迭代次数，batch数受限于网络结构和大小，过短的迭代次数又容易导致模型的性能下降，打算代码写完后进行几次测试，尽量让实验可以在一天到两天之内跑完。
 
+另外自己打算用TTUR[6]加Adam[7]作为训练时的优化方法。把Discriminator的学习率设置为$0.0004$，把Generator的学习率设置为$0.0001$，同时把Adam[7]的参数设置为$\beta_1 = 0, \beta_2 = 0.9$。为了节省时间的考虑，迭代次数暂时设置为$100,000$次
+
 # 基础结构
 ## Spectral Normalization
 公式和相关的说明在下一次提交的时候补上。
+
 Spectral Normalization[2]是一个利用参数的二次范式，根据Lipschitz限制推导出的一个参数优化方法，其主要目的是为了让辨别器在训练过程中稳定。
-另外[2]的作者还提出了一个带投影的CGAN辨别器[5]，
+
+## Projection Discriminator
+Projection Discriminator[5]由原始GAN的判别器损失函数所启发，是一种cGAN的判别器结构。
 
 ## Deformable Convolutional Networks
 公式和相关的说明在下一次提交的时候补上。
+
 Deformable Convolutional Networks[3]会根据输入在卷积前进行不规则的采样和插值计算，以便让不同位置的卷积有着不同的感受域。个人认为Deformable Conv可以认为是SAGAN的一种特殊情况，具体说明可见SAGAN的说明。因此本实验不采用Deformable Conv。
 
 ## Self-Attention Generative Adversarial Networks
 公式和相关的说明在下一次提交的时候补上。
+
 关于如何将SAGAN的公式转换为Deformable Conv，也在下一次提交的时候补上。
 
+## Conditional Batch Normalization
+CBN适合带有条件的图片生成，这里的条件一般认为是图像的类别，可能不适合本任务。
+
 # 网络结构
+
 
 # 参考
 [1] Xie W, Shen L, Zisserman A. Comparator networks[J]. arXiv preprint arXiv:1807.11440, 2018.
@@ -41,3 +52,7 @@ Deformable Convolutional Networks[3]会根据输入在卷积前进行不规则�
 [4] Zhang H, Goodfellow I, Metaxas D, et al. Self-Attention Generative Adversarial Networks[J]. arXiv preprint arXiv:1805.08318, 2018.
 
 [5] Miyato T, Koyama M. cGANs with projection discriminator[J]. arXiv preprint arXiv:1802.05637, 2018.
+
+[6] Heusel M, Ramsauer H, Unterthiner T, et al. Gans trained by a two time-scale update rule converge to a local nash equilibrium[C]//Advances in Neural Information Processing Systems. 2017: 6626-6637.
+
+[7] Kingma D P, Ba J. Adam: A method for stochastic optimization[J]. arXiv preprint arXiv:1412.6980, 2014.
