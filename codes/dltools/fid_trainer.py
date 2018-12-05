@@ -57,11 +57,11 @@ if __name__ == '__main__':
                         help='image directory when precalculate fid statstics')
     parser.add_argument('--fid_dst',
                         help='file path which to store mu and sigma when precalculate fid statstics')
-    # MUNIT
-    parser.add_argument('--config', type=str, default='configs/edges2handbags_folder.yaml', help='Path to the config file.')
+    # SATNet
+    parser.add_argument('--config', type=str, default='configs/init.yaml', help='Path to the config file.')
     parser.add_argument('--output_path', type=str, default='.', help="outputs path")
     parser.add_argument("--resume", action="store_true")
-    parser.add_argument('--trainer', type=str, default='MUNIT', help="MUNIT|UNIT")
+    # parser.add_argument('--trainer', type=str, default='MUNIT', help="MUNIT|UNIT")s
 
     args = parser.parse_args()
 
@@ -70,9 +70,5 @@ if __name__ == '__main__':
     if args.precalu:
         save_statistics(args.fid_src, args.fid_dst, args.gpu != '')
     else :
-        try:
-            from train import main as train_main_func
-        except ImportError:
-            sys.path.append(os.path.join(submodule_path, 'MUNIT'))
-            from train import main as train_main_func
+        from ..SATNet.train import main as train_main_func
         train_with_fid(args, train_main_func)
