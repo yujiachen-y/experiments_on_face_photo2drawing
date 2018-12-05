@@ -24,7 +24,9 @@
 Spectral Normalization[2]是一个利用参数的二次范式，根据Lipschitz限制推导出的一个参数优化方法，其主要目的是为了让辨别器在训练过程中稳定。
 
 ## Projection Discriminator
-Projection Discriminator[5]由原始GAN的判别器损失函数所启发，是一种cGAN的判别器结构。
+公式和相关的说明在下一次提交的时候补上。
+
+Projection Discriminator[5]由用于分类的softmax损失函数所启发，是一种cGAN的判别器结构。
 
 ## Deformable Convolutional Networks
 公式和相关的说明在下一次提交的时候补上。
