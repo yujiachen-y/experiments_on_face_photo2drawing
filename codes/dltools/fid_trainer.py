@@ -70,5 +70,12 @@ if __name__ == '__main__':
     if args.precalu:
         save_statistics(args.fid_src, args.fid_dst, args.gpu != '')
     else :
-        from ..SATNet.train import main as train_main_func
+        try:
+            from ..SATNet.train import main as train_main_func
+        except (ImportError, ValueError,):
+            sys.path.append(os.path.join(
+                os.path.abspath('./codes'),
+                'SATNet',
+            ))
+            from train import main as train_main_func
         train_with_fid(args, train_main_func)

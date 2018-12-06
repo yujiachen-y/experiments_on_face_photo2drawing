@@ -77,8 +77,8 @@ def main(opts, yield_mode=False):
                     paths = trainer.yield_mode_sample(test_loader_a.dataset, test_loader_b.dataset,
                                                       image_directory, iterations)
                     paths = list(paths)
-                    paths.append(os.path.join(config['data_root'], 'testA.npz'))
-                    paths.append(os.path.join(config['data_root'], 'testB.npz'))
+                    paths.append(os.path.join(config['data_info'], 'testA.npz'))
+                    paths.append(os.path.join(config['data_info'], 'testB.npz'))
                     other_losses = yield paths
                     write_loss(iterations, None, train_writer, other_losses)
 

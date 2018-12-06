@@ -127,25 +127,26 @@ class Trainer(nn.Module):
         for path in (x_a_recon_path, x_ab_path, x_b_recon_path, x_ba_path,):
             os.makedirs(path, exist_ok=True)
         
-        self.eval()
-        rng = np.random.RandomState(1)
-        for i, (x_a, y_a) in enumerate(d_a):
-            c_a, s_a_fake = self.gen_a.encode(x_a.unsqueeze(0).cuda())
-            x_a_recon = self.gen_a.decode(c_a, s_a_fake)
-            vutils.save_image(x_a_recon, os.path.join(x_a_recon_path, '%05d.jpg' % i))
-            s_b = Variable(torch.tensor(rng.randn(self.style_dim, 1, 1), dtype=torch.float32).cuda())
-            x_ab = self.gen_b.decode(c_a, s_b.unsqueeze(0))
-            vutils.save_image(x_ab, os.path.join(x_ab_path, '%05d.jpg' % i))
+        with torch.no_grad():
+            self.eval()
+            rng = np.random.RandomState(1)
+            for i, (x_a, y_a) in enumerate(d_a):
+                c_a, s_a_fake = self.gen_a.encode(x_a.unsqueeze(0).cuda())
+                x_a_recon = self.gen_a.decode(c_a, s_a_fake)
+                vutils.save_image(x_a_recon, os.path.join(x_a_recon_path, '%05d.jpg' % i))
+                s_b = Variable(torch.tensor(rng.randn(self.style_dim, 1, 1), dtype=torch.float32).cuda())
+                x_ab = self.gen_b.decode(c_a, s_b.unsqueeze(0))
+                vutils.save_image(x_ab, os.path.join(x_ab_path, '%05d.jpg' % i))
 
-        for i, (x_b, y_b) in enumerate(d_b):
-            c_b, s_b_fake = self.gen_b.encode(x_b.unsqueeze(0).cuda())
-            x_b_recon = self.gen_b.decode(c_b, s_b_fake)
-            vutils.save_image(x_b_recon, os.path.join(x_b_recon_path, '%05d.jpg' % i))
-            s_a = Variable(torch.tensor(rng.randn(self.style_dim, 1, 1), dtype=torch.float32).cuda())
-            x_ba = self.gen_a.decode(c_b, s_a.unsqueeze(0))
-            vutils.save_image(x_ba, os.path.join(x_ba_path, '%05d.jpg' % i))
+            for i, (x_b, y_b) in enumerate(d_b):
+                c_b, s_b_fake = self.gen_b.encode(x_b.unsqueeze(0).cuda())
+                x_b_recon = self.gen_b.decode(c_b, s_b_fake)
+                vutils.save_image(x_b_recon, os.path.join(x_b_recon_path, '%05d.jpg' % i))
+                s_a = Variable(torch.tensor(rng.randn(self.style_dim, 1, 1), dtype=torch.float32).cuda())
+                x_ba = self.gen_a.decode(c_b, s_a.unsqueeze(0))
+                vutils.save_image(x_ba, os.path.join(x_ba_path, '%05d.jpg' % i))
 
-        self.train()
+            self.train()
         return x_a_recon_path, x_ab_path, x_b_recon_path, x_ba_path
 
     def sample(self, x_a, x_b):
