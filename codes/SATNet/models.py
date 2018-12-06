@@ -12,7 +12,7 @@ from torch.autograd import Variable
 ##################################################################################
 class ProCDis(nn.Module):
     # projection based conditional Discriminator
-    def __init__(self, input_dim, params):
+    def __init__(self, input_dim, params, class_num):
         super(ProCDis, self).__init__()
         self.n_layer = params['n_layer']
         self.gan_type = params['gan_type']
@@ -20,7 +20,7 @@ class ProCDis(nn.Module):
         self.norm = params['norm']
         self.activ = params['activ']
         self.pad_type = params['pad_type']
-        self.class_num = params['class_num']
+        self.class_num = class_num
         self.input_dim = input_dim
         
         self.model = []
@@ -31,9 +31,9 @@ class ProCDis(nn.Module):
             self.dim *= 2
         # self attention
         self.model += [
-            SelfAttention(self.dim),
+            SelfAttention(self.dim, norm=self.norm),
             ResBlock(self.dim, norm=self.norm, activation=self.activ, pad_type=self.pad_type),
-            SelfAttention(self.dim),
+            SelfAttention(self.dim, norm=self.norm),
         ]
         # resblock
         for i in range(self.n_layer - 3):
@@ -52,7 +52,7 @@ class ProCDis(nn.Module):
 
         output = self.fc(x)
         if y is not None:
-            output += torch.sum(x * self.y_vector(y))
+            output = output + torch.sum(x * self.y_vector(y))
         
         return output
 
@@ -71,8 +71,7 @@ class ProCDis(nn.Module):
                 loss += torch.mean(F.binary_cross_entropy(F.sigmoid(out0), all0) +
                                    F.binary_cross_entropy(F.sigmoid(out1), all1))
             elif self.gan_type == 'hinge':
-                loss += torch.mean(F.relu(1 + outs0)) + 
-                        torch.mean(F.relu(1 - outs1))
+                loss += torch.mean(F.relu(1 + out0)) + torch.mean(F.relu(1 - out1))
             else:
                 assert 0, "Unsupported GAN type: {}".format(self.gan_type)
         return loss
@@ -88,7 +87,7 @@ class ProCDis(nn.Module):
                 all1 = Variable(torch.ones_like(out0.data).cuda(), requires_grad=False)
                 loss += torch.mean(F.binary_cross_entropy(F.sigmoid(out0), all1))
             elif self.gan_type == 'hinge':
-                loss += -torch.mean(outs0)
+                loss += -torch.mean(out0)
             else:
                 assert 0, "Unsupported GAN type: {}".format(self.gan_type)
         return loss
@@ -280,16 +279,24 @@ class MLP(nn.Module):
 # Basic Blocks
 ##################################################################################
 class SelfAttention(nn.Module):
-    def __init__(self, input_dim):
+    def __init__(self, input_dim, norm='none', eps=1e-12):
         super(SelfAttention, self).__init__()
 
         self.f_conv = nn.Conv2d(input_dim, input_dim//8, 1)
         self.g_conv = nn.Conv2d(input_dim, input_dim//8, 1)
         self.k_conv = nn.Conv2d(input_dim, input_dim, 1)
         self.softmax = nn.Softmax(dim=-1)
-        self.gamma = nn.Parameter(torch.zeros(1))
+        self.gamma = nn.Parameter(torch.zeros(1)+eps)
+
+        if norm == 'sn':
+            self.f_conv = SpectralNorm(self.f_conv)
+            self.g_conv = SpectralNorm(self.g_conv)
+            self.k_conv = SpectralNorm(self.k_conv)
+        elif norm != 'none':
+            raise NotImplementedError
 
     def forward(self, x):
+        # return x
         b, c, w, h = x.shape
         f = self.f_conv(x).view(b, -1, w*h)
         g = self.g_conv(x).view(b, -1, w*h)

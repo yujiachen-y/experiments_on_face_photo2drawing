@@ -20,8 +20,8 @@ class Trainer(nn.Module):
         # Initiate the networks
         self.gen_a = AdaINGen(hyperparameters['input_dim_a'], hyperparameters['gen'])  # auto-encoder for domain a
         self.gen_b = AdaINGen(hyperparameters['input_dim_b'], hyperparameters['gen'])  # auto-encoder for domain b
-        self.dis_a = ProCDis(hyperparameters['input_dim_a'], hyperparameters['dis'])  # discriminator for domain a
-        self.dis_b = ProCDis(hyperparameters['input_dim_b'], hyperparameters['dis'])  # discriminator for domain b
+        self.dis_a = ProCDis(hyperparameters['input_dim_a'], hyperparameters['dis'], hyperparameters['class_num_a'])  # discriminator for domain a
+        self.dis_b = ProCDis(hyperparameters['input_dim_b'], hyperparameters['dis'], hyperparameters['class_num_b'])  # discriminator for domain b
         self.instancenorm = nn.InstanceNorm2d(512, affine=False)
         self.style_dim = hyperparameters['gen']['style_dim']
 
@@ -129,7 +129,7 @@ class Trainer(nn.Module):
         
         self.eval()
         rng = np.random.RandomState(1)
-        for i, x_a in enumerate(d_a):
+        for i, (x_a, y_a) in enumerate(d_a):
             c_a, s_a_fake = self.gen_a.encode(x_a.unsqueeze(0).cuda())
             x_a_recon = self.gen_a.decode(c_a, s_a_fake)
             vutils.save_image(x_a_recon, os.path.join(x_a_recon_path, '%05d.jpg' % i))
@@ -137,7 +137,7 @@ class Trainer(nn.Module):
             x_ab = self.gen_b.decode(c_a, s_b.unsqueeze(0))
             vutils.save_image(x_ab, os.path.join(x_ab_path, '%05d.jpg' % i))
 
-        for i, x_b in enumerate(d_b):
+        for i, (x_b, y_b) in enumerate(d_b):
             c_b, s_b_fake = self.gen_b.encode(x_b.unsqueeze(0).cuda())
             x_b_recon = self.gen_b.decode(c_b, s_b_fake)
             vutils.save_image(x_b_recon, os.path.join(x_b_recon_path, '%05d.jpg' % i))
