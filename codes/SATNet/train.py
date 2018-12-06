@@ -25,13 +25,15 @@ def main(opts, yield_mode=False):
     config['vgg_model_path'] = opts.output_path
 
     # Setup model and data loader
+    train_loader_a, train_loader_b, test_loader_a, test_loader_b = get_all_data_loaders(config)
+    train_display_images_a = torch.stack([train_loader_a.dataset[i][0] for i in range(display_size)]).cuda()
+    train_display_images_b = torch.stack([train_loader_b.dataset[i][0] for i in range(display_size)]).cuda()
+    test_display_images_a = torch.stack([test_loader_a.dataset[i][0] for i in range(display_size)]).cuda()
+    test_display_images_b = torch.stack([test_loader_b.dataset[i][0] for i in range(display_size)]).cuda()
+    config['class_num_a'] = len(train_loader_a.dataset.classes)
+    config['class_num_b'] = len(train_loader_b.dataset.classes)
     trainer = Trainer(config)
     trainer.cuda()
-    train_loader_a, train_loader_b, test_loader_a, test_loader_b = get_all_data_loaders(config)
-    train_display_images_a = torch.stack([train_loader_a.dataset[i] for i in range(display_size)]).cuda()
-    train_display_images_b = torch.stack([train_loader_b.dataset[i] for i in range(display_size)]).cuda()
-    test_display_images_a = torch.stack([test_loader_a.dataset[i] for i in range(display_size)]).cuda()
-    test_display_images_b = torch.stack([test_loader_b.dataset[i] for i in range(display_size)]).cuda()
 
     # Setup logger and output folders
     from git import Repo
@@ -45,9 +47,10 @@ def main(opts, yield_mode=False):
     # Start training
     iterations = trainer.resume(checkpoint_directory, hyperparameters=config) if opts.resume else 0
     while True:
-        for it, (images_a, images_b, labels_a, labels_b) in enumerate(zip(train_loader_a, train_loader_b)):
+        for it, ((images_a, labels_a), (images_b, labels_b)) in enumerate(zip(train_loader_a, train_loader_b)):
             trainer.update_learning_rate()
             images_a, images_b = images_a.cuda().detach(), images_b.cuda().detach()
+            labels_a, labels_b = labels_a.cuda().detach(), labels_b.cuda().detach()
 
             with Timer("Elapsed time in update: %f"):
                 # Main training code

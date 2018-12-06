@@ -76,7 +76,7 @@ class ImageLabelFileInfo(data.Dataset):
         self.classes = sorted(list(set([os.path.splitext(path)[0] for path in os.listdir(os.path.join(root, 'informations'))])))
         self.class_to_idx = {self.classes[i]: i for i in range(len(self.classes))}
         self.imgs = []
-        for class_name, idx in enumerate(self.classes):
+        for idx, class_name in enumerate(self.classes):
             self.imgs += [(filename, idx) for filename in json.load(open(os.path.join(root, 'informations', class_name+'.json')))]
 
     def __getitem__(self, index):

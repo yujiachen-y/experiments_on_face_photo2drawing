@@ -60,13 +60,13 @@ def get_all_data_loaders(conf):
         test_loader_b = get_data_loader_folder(os.path.join(conf['data_root'], 'testB'), batch_size, False,
                                              new_size_b, new_size_b, new_size_b, num_workers, True)
     elif 'data_info' in conf:
-        train_loader_a = get_data_loader_folder(os.path.join(conf['data_root'], 'trainA'), batch_size, True,
+        train_loader_a = get_data_loader_info(os.path.join(conf['data_info'], 'trainA'), batch_size, True,
                                               new_size_a, height, width, num_workers, True)
-        test_loader_a = get_data_loader_folder(os.path.join(conf['data_root'], 'testA'), batch_size, False,
+        test_loader_a = get_data_loader_info(os.path.join(conf['data_info'], 'testA'), batch_size, False,
                                              new_size_a, new_size_a, new_size_a, num_workers, True)
-        train_loader_b = get_data_loader_folder(os.path.join(conf['data_root'], 'trainB'), batch_size, True,
+        train_loader_b = get_data_loader_info(os.path.join(conf['data_info'], 'trainB'), batch_size, True,
                                               new_size_b, height, width, num_workers, True)
-        test_loader_b = get_data_loader_folder(os.path.join(conf['data_root'], 'testB'), batch_size, False,
+        test_loader_b = get_data_loader_info(os.path.join(conf['data_info'], 'testB'), batch_size, False,
                                              new_size_b, new_size_b, new_size_b, num_workers, True)
     else:
         train_loader_a = get_data_loader_list(conf['data_folder_train_a'], conf['data_list_train_a'], batch_size, True,
@@ -301,7 +301,7 @@ def get_scheduler(optimizer, hyperparameters, iterations=-1):
 def weights_init(init_type='gaussian'):
     def init_fun(m):
         classname = m.__class__.__name__
-        if (classname.find('Conv') == 0 or classname.find('Linear') == 0) and hasattr(m, 'weight'):
+        if (classname.find('Conv') == 0 or classname.find('Linear') == 0 or classname.find('Embedding') == 0) and hasattr(m, 'weight'):
             # print m.__class__.__name__
             if init_type == 'gaussian':
                 init.normal_(m.weight.data, 0.0, 0.02)
