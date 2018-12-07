@@ -9,7 +9,7 @@ import torch.nn as nn
 import torchvision.utils as vutils
 from torch.autograd import Variable
 
-from models import AdaINGen, ProCDis
+from networks import AdaINGen, MsImageDis
 from utils import get_model_list, get_scheduler, weights_init
 
 class Trainer(nn.Module):
@@ -20,8 +20,8 @@ class Trainer(nn.Module):
         # Initiate the networks
         self.gen_a = AdaINGen(hyperparameters['input_dim_a'], hyperparameters['gen'])  # auto-encoder for domain a
         self.gen_b = AdaINGen(hyperparameters['input_dim_b'], hyperparameters['gen'])  # auto-encoder for domain b
-        self.dis_a = ProCDis(hyperparameters['input_dim_a'], hyperparameters['dis'], hyperparameters['class_num_a'])  # discriminator for domain a
-        self.dis_b = ProCDis(hyperparameters['input_dim_b'], hyperparameters['dis'], hyperparameters['class_num_b'])  # discriminator for domain b
+        self.dis_a = MsImageDis(hyperparameters['input_dim_a'], hyperparameters['dis'], hyperparameters['class_num_a'])  # discriminator for domain a
+        self.dis_b = MsImageDis(hyperparameters['input_dim_b'], hyperparameters['dis'], hyperparameters['class_num_b'])  # discriminator for domain b
         self.instancenorm = nn.InstanceNorm2d(512, affine=False)
         self.style_dim = hyperparameters['gen']['style_dim']
 
