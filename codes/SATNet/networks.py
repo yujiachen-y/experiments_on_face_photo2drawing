@@ -17,7 +17,7 @@ except ImportError: # will be 3.x series
 
 class MsImageDis(nn.Module):
     # Multi-scale discriminator architecture
-    def __init__(self, input_dim, params):
+    def __init__(self, input_dim, params, class_num=None):
         super(MsImageDis, self).__init__()
         self.n_layer = params['n_layer']
         self.gan_type = params['gan_type']
@@ -32,6 +32,15 @@ class MsImageDis(nn.Module):
         for _ in range(self.num_scales):
             self.cnns.append(self._make_net())
 
+        if class_num is not None:
+            self.class_num = class_num
+            self.res_model = [ResBlocks(6, self.res_dim, norm=self.norm, activation=self.activ, pad_type=self.pad_type)]
+            self.res_model = nn.Sequential(*self.res_model)
+
+            self.fc = LinearBlock(self.res_dim, 1, norm=self.norm, activation=self.activ)
+
+            self.y_vector = SpectralNorm(nn.Embedding(self.class_num, self.res_dim))
+
     def _make_net(self):
         dim = self.dim
         cnn_x = []
@@ -41,23 +50,33 @@ class MsImageDis(nn.Module):
             dim *= 2
         cnn_x += [nn.Conv2d(dim, 1, 1, 1, 0)]
         cnn_x = nn.Sequential(*cnn_x)
+        self.res_dim = dim
         return cnn_x
 
-    def forward(self, x):
+    def forward(self, x, y=None):
         outputs = []
         for model in self.cnns:
             outputs.append(model(x))
             x = self.downsample(x)
+
+        if y is not None:
+            x = self.res_model(x)
+            score = self.fc(x) + torch.sum(x * self.y_vector(y))
+            outputs.append(score)
+
         return outputs
 
-    def calc_dis_loss(self, input_fake, input_real):
+    def calc_dis_loss(self, input_fake, input_real, fake_label=None, real_label=None):
         # calculate the loss to train D
-        outs0 = self.forward(input_fake)
-        outs1 = self.forward(input_real)
+        outs0 = self.forward(input_fake, fake_label)
+        outs1 = self.forward(input_real, real_label)
         loss = 0
 
         for it, (out0, out1) in enumerate(zip(outs0, outs1)):
             if self.gan_type == 'lsgan':
+                if fake_label is not None and it == self.n_layer:
+                    loss += self.n_layer * (torch.mean((out0 - 0)**2) + torch.mean((out1 - 1)**2))
+                    continue
                 loss += torch.mean((out0 - 0)**2) + torch.mean((out1 - 1)**2)
             elif self.gan_type == 'nsgan':
                 all0 = Variable(torch.zeros_like(out0.data).cuda(), requires_grad=False)
@@ -68,12 +87,15 @@ class MsImageDis(nn.Module):
                 assert 0, "Unsupported GAN type: {}".format(self.gan_type)
         return loss
 
-    def calc_gen_loss(self, input_fake):
+    def calc_gen_loss(self, input_fake, fake_label=None):
         # calculate the loss to train G
-        outs0 = self.forward(input_fake)
+        outs0 = self.forward(input_fake, fake_label)
         loss = 0
         for it, (out0) in enumerate(outs0):
             if self.gan_type == 'lsgan':
+                if fake_label is not None and it == self.n_layer:
+                    loss += self.n_layer * (torch.mean((out0 - 0)**2) + torch.mean((out1 - 1)**2))
+                    continue
                 loss += torch.mean((out0 - 1)**2) # LSGAN
             elif self.gan_type == 'nsgan':
                 all1 = Variable(torch.ones_like(out0.data).cuda(), requires_grad=False)
