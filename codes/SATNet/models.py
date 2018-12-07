@@ -281,29 +281,30 @@ class MLP(nn.Module):
 class SelfAttention(nn.Module):
     def __init__(self, input_dim, norm='none', eps=1e-12):
         super(SelfAttention, self).__init__()
+        pass
 
-        self.f_conv = nn.Conv2d(input_dim, input_dim//8, 1)
-        self.g_conv = nn.Conv2d(input_dim, input_dim//8, 1)
-        self.k_conv = nn.Conv2d(input_dim, input_dim, 1)
-        self.softmax = nn.Softmax(dim=-1)
+        # self.f_conv = nn.Conv2d(input_dim, input_dim//8, 1)
+        # self.g_conv = nn.Conv2d(input_dim, input_dim//8, 1)
+        # self.k_conv = nn.Conv2d(input_dim, input_dim, 1)
+        # self.softmax = nn.Softmax(dim=-1)
 
-        if norm == 'sn':
-            self.f_conv = SpectralNorm(self.f_conv)
-            self.g_conv = SpectralNorm(self.g_conv)
-            self.k_conv = SpectralNorm(self.k_conv)
-        elif norm != 'none':
-            raise NotImplementedError
+        # if norm == 'sn':
+        #     self.f_conv = SpectralNorm(self.f_conv)
+        #     self.g_conv = SpectralNorm(self.g_conv)
+        #     self.k_conv = SpectralNorm(self.k_conv)
+        # elif norm != 'none':
+        #     raise NotImplementedError
 
     def forward(self, x):
-        # return x
-        b, c, w, h = x.shape
-        f = self.f_conv(x).view(b, -1, w*h)
-        g = self.g_conv(x).view(b, -1, w*h)
-        k = self.k_conv(x).view(b, -1, w*h)
-        # attention.shape = (b, w*h, w*h)
-        attention = self.softmax(torch.bmm(f.permute(0, 2, 1), g))
-        out = torch.bmm(k, attention.permute(0, 2, 1)).view(b, c, w, h)
-        return out + x
+        return x
+        # b, c, w, h = x.shape
+        # f = self.f_conv(x).view(b, -1, w*h)
+        # g = self.g_conv(x).view(b, -1, w*h)
+        # k = self.k_conv(x).view(b, -1, w*h)
+        # # attention.shape = (b, w*h, w*h)
+        # attention = self.softmax(torch.bmm(f.permute(0, 2, 1), g))
+        # out = torch.bmm(k, attention.permute(0, 2, 1)).view(b, c, w, h)
+        # return out + x
 
 
 class ResBlock(nn.Module):
