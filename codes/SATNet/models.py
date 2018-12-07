@@ -286,7 +286,6 @@ class SelfAttention(nn.Module):
         self.g_conv = nn.Conv2d(input_dim, input_dim//8, 1)
         self.k_conv = nn.Conv2d(input_dim, input_dim, 1)
         self.softmax = nn.Softmax(dim=-1)
-        self.gamma = nn.Parameter(torch.zeros(1)+eps)
 
         if norm == 'sn':
             self.f_conv = SpectralNorm(self.f_conv)
@@ -304,7 +303,7 @@ class SelfAttention(nn.Module):
         # attention.shape = (b, w*h, w*h)
         attention = self.softmax(torch.bmm(f.permute(0, 2, 1), g))
         out = torch.bmm(k, attention.permute(0, 2, 1)).view(b, c, w, h)
-        return self.gamma * out + x
+        return out + x
 
 
 class ResBlock(nn.Module):
