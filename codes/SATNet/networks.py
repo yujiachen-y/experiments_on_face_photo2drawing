@@ -34,12 +34,15 @@ class MsImageDis(nn.Module):
 
         if class_num is not None:
             self.class_num = class_num
-            self.res_model = [ResBlocks(6, self.res_dim, norm=self.norm, activation=self.activ, pad_type=self.pad_type)]
+            self.res_model = []
+            self.res_model += [Conv2dBlock(self.input_dim, self.dim, 1, 1, 0, norm='none', activation=self.activ, pad_type=self.pad_type)]
+            self.res_model += [ResBlocks(self.n_layer, self.dim, norm=self.norm, activation=self.activ, pad_type=self.pad_type)]
+            self.res_model += [MLP(int(self.dim * ((256 / (2 ** self.num_scales)) ** 2)), self.dim, self.dim, 1, norm=self.norm, activ=self.activ)]
             self.res_model = nn.Sequential(*self.res_model)
+            
+            self.mlp = MLP(self.dim, 1, self.dim, 1, norm=self.norm, activ=self.activ)
 
-            self.fc = LinearBlock(self.res_dim, 1, norm=self.norm, activation=self.activ)
-
-            self.y_vector = SpectralNorm(nn.Embedding(self.class_num, self.res_dim))
+            self.y_vector = SpectralNorm(nn.Embedding(self.class_num, self.dim))
 
     def _make_net(self):
         dim = self.dim
@@ -50,7 +53,6 @@ class MsImageDis(nn.Module):
             dim *= 2
         cnn_x += [nn.Conv2d(dim, 1, 1, 1, 0)]
         cnn_x = nn.Sequential(*cnn_x)
-        self.res_dim = dim
         return cnn_x
 
     def forward(self, x, y=None):
@@ -61,7 +63,7 @@ class MsImageDis(nn.Module):
 
         if y is not None:
             x = self.res_model(x)
-            score = self.fc(x) + torch.sum(x * self.y_vector(y))
+            score = self.mlp(x) + torch.sum(x * self.y_vector(y))
             outputs.append(score)
 
         return outputs
@@ -74,8 +76,8 @@ class MsImageDis(nn.Module):
 
         for it, (out0, out1) in enumerate(zip(outs0, outs1)):
             if self.gan_type == 'lsgan':
-                if fake_label is not None and it == self.n_layer:
-                    loss += self.n_layer * (torch.mean((out0 - 0)**2) + torch.mean((out1 - 1)**2))
+                if fake_label is not None and it == self.num_scales:
+                    loss += self.num_scales * (torch.mean((out0 - 0)**2) + torch.mean((out1 - 1)**2))
                     continue
                 loss += torch.mean((out0 - 0)**2) + torch.mean((out1 - 1)**2)
             elif self.gan_type == 'nsgan':
@@ -93,8 +95,8 @@ class MsImageDis(nn.Module):
         loss = 0
         for it, (out0) in enumerate(outs0):
             if self.gan_type == 'lsgan':
-                if fake_label is not None and it == self.n_layer:
-                    loss += self.n_layer * (torch.mean((out0 - 0)**2) + torch.mean((out1 - 1)**2))
+                if fake_label is not None and it == self.num_scales:
+                    loss += self.num_scales * torch.mean((out0 - 1)**2)
                     continue
                 loss += torch.mean((out0 - 1)**2) # LSGAN
             elif self.gan_type == 'nsgan':
