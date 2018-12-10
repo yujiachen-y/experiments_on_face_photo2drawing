@@ -14,9 +14,64 @@ except ImportError: # will be 3.x series
 # Discriminator
 ##################################################################################
 
+class Classifier(nn.Module):
+    def __init__(self, input_dim, params, class_num):
+        super(Classifier, self).__init__()
+        self.input_dim = input_dim
+        self.dim = params['dim']
+        self.activ = params['activ']
+        self.n_downsample = params['n_downsample']
+        self.n_res = params['n_res']
+        self.pad_type = params['pad_type']
+        self.norm = params['norm']
+        
+        self.gen_total = 0
+        self.gen_count = 0
+        self.cls_total = 0
+        self.cls_count = 0
+        
+        self.class_num = class_num
+        dim = self.dim
+        self.model = []
+        self.model += [Conv2dBlock(input_dim, dim, 7, 1, 3, norm=self.norm, activation=self.activ, pad_type=self.pad_type)]
+        for i in range(2):
+            self.model += [Conv2dBlock(dim, 2 * dim, 4, 2, 1, norm=self.norm, activation=self.activ, pad_type=self.pad_type)]
+            dim *= 2
+        for i in range(self.n_downsample - 2):
+            self.model += [Conv2dBlock(dim, dim, 4, 2, 1, norm=self.norm, activation=self.activ, pad_type=self.pad_type)]
+        self.model += [ResBlocks(self.n_res, dim, norm=self.norm, activation=self.activ, pad_type=self.pad_type)]
+        self.model += [MLP(int(dim*((256/(2**self.n_downsample))**2)), self.class_num, self.dim, 1, norm=self.norm, activ=self.activ)]
+        self.model += [nn.Softmax(dim=-1)]
+        self.model = nn.Sequential(*self.model)
+
+        self.cel = nn.CrossEntropyLoss()
+
+    def forward(self, x):
+        return self.model(x)
+
+    def calc_cls_loss(self, x, y, name=None):
+        x = self.model(x)
+        if name is not None:
+            self.count_acc(x, y, name)
+        # from IPython import embed; embed()
+        return self.cel(x, y)
+
+    def count_acc(self, x, y, name):
+        total = getattr(self, name+'_total')
+        count = getattr(self, name+'_count')
+        total = total + 1
+        count = count + int(torch.argmax(x) == y)
+        setattr(self, name+'_total', total)
+        setattr(self, name+'_count', count)
+
+
+##################################################################################
+# Discriminator
+##################################################################################
+
 class MsImageDis(nn.Module):
     # Multi-scale discriminator architecture
-    def __init__(self, input_dim, params, class_num=None):
+    def __init__(self, input_dim, params):
         super(MsImageDis, self).__init__()
         self.n_layer = params['n_layer']
         self.gan_type = params['gan_type']
@@ -31,18 +86,6 @@ class MsImageDis(nn.Module):
         for _ in range(self.num_scales):
             self.cnns.append(self._make_net())
 
-        if class_num is not None:
-            self.class_num = class_num
-            self.res_model = []
-            self.res_model += [Conv2dBlock(self.input_dim, self.dim, 1, 1, 0, norm='none', activation=self.activ, pad_type=self.pad_type)]
-            self.res_model += [ResBlocks(self.n_layer, self.dim, norm=self.norm, activation=self.activ, pad_type=self.pad_type)]
-            self.res_model += [MLP(int(self.dim * ((256 / (2 ** self.num_scales)) ** 2)), self.dim, self.dim, 1, norm=self.norm, activ=self.activ)]
-            self.res_model = nn.Sequential(*self.res_model)
-            
-            self.mlp = MLP(self.dim, 1, self.dim, 1, norm=self.norm, activ=self.activ)
-
-            self.y_vector = SpectralNorm(nn.Embedding(self.class_num, self.dim))
-
     def _make_net(self):
         dim = self.dim
         cnn_x = []
@@ -54,30 +97,22 @@ class MsImageDis(nn.Module):
         cnn_x = nn.Sequential(*cnn_x)
         return cnn_x
 
-    def forward(self, x, y=None):
+    def forward(self, x):
         outputs = []
         for model in self.cnns:
             outputs.append(model(x))
             x = self.downsample(x)
 
-        if y is not None:
-            x = self.res_model(x)
-            score = self.mlp(x) + torch.sum(x * self.y_vector(y))
-            outputs.append(score)
-
         return outputs
 
-    def calc_dis_loss(self, input_fake, input_real, fake_label=None, real_label=None):
+    def calc_dis_loss(self, input_fake, input_real):
         # calculate the loss to train D
-        outs0 = self.forward(input_fake, fake_label)
-        outs1 = self.forward(input_real, real_label)
+        outs0 = self.forward(input_fake)
+        outs1 = self.forward(input_real)
         loss = 0
 
         for it, (out0, out1) in enumerate(zip(outs0, outs1)):
             if self.gan_type == 'lsgan':
-                if fake_label is not None and it == self.num_scales:
-                    loss += self.num_scales * (torch.mean((out0 - 0)**2) + torch.mean((out1 - 1)**2))
-                    continue
                 loss += torch.mean((out0 - 0)**2) + torch.mean((out1 - 1)**2)
             elif self.gan_type == 'nsgan':
                 all0 = Variable(torch.zeros_like(out0.data).cuda(), requires_grad=False)
@@ -90,15 +125,12 @@ class MsImageDis(nn.Module):
                 assert 0, "Unsupported GAN type: {}".format(self.gan_type)
         return loss
 
-    def calc_gen_loss(self, input_fake, fake_label=None):
+    def calc_gen_loss(self, input_fake):
         # calculate the loss to train G
-        outs0 = self.forward(input_fake, fake_label)
+        outs0 = self.forward(input_fake)
         loss = 0
         for it, (out0) in enumerate(outs0):
             if self.gan_type == 'lsgan':
-                if fake_label is not None and it == self.num_scales:
-                    loss += self.num_scales * torch.mean((out0 - 1)**2)
-                    continue
                 loss += torch.mean((out0 - 1)**2) # LSGAN
             elif self.gan_type == 'nsgan':
                 all1 = Variable(torch.ones_like(out0.data).cuda(), requires_grad=False)
@@ -285,10 +317,13 @@ class MLP(nn.Module):
 
         super(MLP, self).__init__()
         self.model = []
-        self.model += [LinearBlock(input_dim, dim, norm=norm, activation=activ)]
-        for i in range(n_blk - 2):
-            self.model += [LinearBlock(dim, dim, norm=norm, activation=activ)]
-        self.model += [LinearBlock(dim, output_dim, norm='none', activation='none')] # no output activations
+        if n_blk == 1:
+            self.model += [LinearBlock(input_dim, output_dim, norm='none', activation='none')] # no output activations
+        else:
+            self.model += [LinearBlock(input_dim, dim, norm=norm, activation=activ)]
+            for i in range(n_blk - 2):
+                self.model += [LinearBlock(dim, dim, norm=norm, activation=activ)]
+            self.model += [LinearBlock(dim, output_dim, norm='none', activation='none')] # no output activations
         self.model = nn.Sequential(*self.model)
 
     def forward(self, x):

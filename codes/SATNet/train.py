@@ -55,7 +55,8 @@ def main(opts, yield_mode=False):
 
             with Timer("Elapsed time in update: %f"):
                 # Main training code
-                trainer.dis_update(images_a, images_b, labels_a, labels_b, config)
+                trainer.dis_update(images_a, images_b, config)
+                trainer.cls_update(images_a, images_b, labels_a, labels_b, config)
                 trainer.gen_update(images_a, images_b, labels_a, labels_b, config)
                 torch.cuda.synchronize()
 

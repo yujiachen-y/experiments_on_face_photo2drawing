@@ -9,19 +9,22 @@ import torch.nn as nn
 import torchvision.utils as vutils
 from torch.autograd import Variable
 
-from networks import AdaINGen, MsImageDis
-from utils import get_model_list, get_scheduler, weights_init
+from networks import AdaINGen, MsImageDis, Classifier
+from utils import get_model_list, get_scheduler, weights_init, vgg_preprocess
 
 class Trainer(nn.Module):
     def __init__(self, hyperparameters):
         super(Trainer, self).__init__()
         lr_d = hyperparameters['lr_d']
         lr_g = hyperparameters['lr_g']
+        lr_c = hyperparameters['cls']['lr']
         # Initiate the networks
         self.gen_a = AdaINGen(hyperparameters['input_dim_a'], hyperparameters['gen'])  # auto-encoder for domain a
         self.gen_b = AdaINGen(hyperparameters['input_dim_b'], hyperparameters['gen'])  # auto-encoder for domain b
-        self.dis_a = MsImageDis(hyperparameters['input_dim_a'], hyperparameters['dis'], hyperparameters['class_num_a'])  # discriminator for domain a
-        self.dis_b = MsImageDis(hyperparameters['input_dim_b'], hyperparameters['dis'], hyperparameters['class_num_b'])  # discriminator for domain b
+        self.dis_a = MsImageDis(hyperparameters['input_dim_a'], hyperparameters['dis'])  # discriminator for domain a
+        self.dis_b = MsImageDis(hyperparameters['input_dim_b'], hyperparameters['dis'])  # discriminator for domain b
+        self.cls_a = Classifier(hyperparameters['input_dim_a'], hyperparameters['cls'], hyperparameters['class_num_b'])
+        self.cls_b = Classifier(hyperparameters['input_dim_b'], hyperparameters['cls'], hyperparameters['class_num_b'])
         self.instancenorm = nn.InstanceNorm2d(512, affine=False)
         self.style_dim = hyperparameters['gen']['style_dim']
 
@@ -35,12 +38,16 @@ class Trainer(nn.Module):
         beta2 = hyperparameters['beta2']
         dis_params = list(self.dis_a.parameters()) + list(self.dis_b.parameters())
         gen_params = list(self.gen_a.parameters()) + list(self.gen_b.parameters())
+        cls_params = list(self.cls_a.parameters()) + list(self.cls_b.parameters())
         self.dis_opt = torch.optim.Adam([p for p in dis_params if p.requires_grad],
                                         lr=lr_d, betas=(beta1, beta2), weight_decay=hyperparameters['weight_decay'])
         self.gen_opt = torch.optim.Adam([p for p in gen_params if p.requires_grad],
                                         lr=lr_g, betas=(beta1, beta2), weight_decay=hyperparameters['weight_decay'])
+        self.cls_opt = torch.optim.Adam([p for p in cls_params if p.requires_grad],
+                                        lr=lr_c, betas=(beta1, beta2), weight_decay=hyperparameters['weight_decay'])
         self.dis_scheduler = get_scheduler(self.dis_opt, hyperparameters)
         self.gen_scheduler = get_scheduler(self.gen_opt, hyperparameters)
+        self.cls_scheduler = get_scheduler(self.cls_opt, hyperparameters['cls'])
 
         # Network weight initialization
         self.apply(weights_init(hyperparameters['init']))
@@ -91,8 +98,15 @@ class Trainer(nn.Module):
         self.loss_gen_cycrecon_x_a = self.recon_criterion(x_aba, x_a) if hyperparameters['recon_x_cyc_w'] > 0 else 0
         self.loss_gen_cycrecon_x_b = self.recon_criterion(x_bab, x_b) if hyperparameters['recon_x_cyc_w'] > 0 else 0
         # GAN loss
-        self.loss_gen_adv_a = self.dis_a.calc_gen_loss(x_ba, y_b)
-        self.loss_gen_adv_b = self.dis_b.calc_gen_loss(x_ab, y_a)
+        self.loss_gen_adv_a = self.dis_a.calc_gen_loss(x_ba)
+        self.loss_gen_adv_b = self.dis_b.calc_gen_loss(x_ab)
+        # cls loss
+        self.cls_a.eval()
+        self.cls_b.eval()
+        self.loss_gen_cls_a = self.cls_a.calc_cls_loss(x_ba, y_b, 'gen')
+        self.loss_gen_cls_b = self.cls_b.calc_cls_loss(x_ab, y_a, 'gen')
+        self.cls_a.train()
+        self.cls_b.train()
         # domain-invariant perceptual loss
         self.loss_gen_vgg_a = self.compute_vgg_loss(self.vgg, x_ba, x_b) if hyperparameters['vgg_w'] > 0 else 0
         self.loss_gen_vgg_b = self.compute_vgg_loss(self.vgg, x_ab, x_a) if hyperparameters['vgg_w'] > 0 else 0
@@ -107,6 +121,8 @@ class Trainer(nn.Module):
                               hyperparameters['recon_c_w'] * self.loss_gen_recon_c_b + \
                               hyperparameters['recon_x_cyc_w'] * self.loss_gen_cycrecon_x_a + \
                               hyperparameters['recon_x_cyc_w'] * self.loss_gen_cycrecon_x_b + \
+                              hyperparameters['cls_w'] * self.loss_gen_cls_a + \
+                              hyperparameters['cls_w'] * self.loss_gen_cls_b + \
                               hyperparameters['vgg_w'] * self.loss_gen_vgg_a + \
                               hyperparameters['vgg_w'] * self.loss_gen_vgg_b
         self.loss_gen_total.backward()
@@ -171,7 +187,7 @@ class Trainer(nn.Module):
         self.train()
         return x_a, x_a_recon, x_ab1, x_ab2, x_b, x_b_recon, x_ba1, x_ba2
 
-    def dis_update(self, x_a, x_b, y_a, y_b, hyperparameters):
+    def dis_update(self, x_a, x_b, hyperparameters):
         self.dis_opt.zero_grad()
         s_a = Variable(torch.randn(x_a.size(0), self.style_dim, 1, 1).cuda())
         s_b = Variable(torch.randn(x_b.size(0), self.style_dim, 1, 1).cuda())
@@ -182,11 +198,35 @@ class Trainer(nn.Module):
         x_ba = self.gen_a.decode(c_b, s_a)
         x_ab = self.gen_b.decode(c_a, s_b)
         # D loss
-        self.loss_dis_a = self.dis_a.calc_dis_loss(x_ba.detach(), x_a, y_b, y_a)
-        self.loss_dis_b = self.dis_b.calc_dis_loss(x_ab.detach(), x_b, y_a, y_b)
+        self.loss_dis_a = self.dis_a.calc_dis_loss(x_ba.detach(), x_a)
+        self.loss_dis_b = self.dis_b.calc_dis_loss(x_ab.detach(), x_b)
         self.loss_dis_total = hyperparameters['gan_w'] * self.loss_dis_a + hyperparameters['gan_w'] * self.loss_dis_b
         self.loss_dis_total.backward()
         self.dis_opt.step()
+
+    def cls_update(self, x_a, x_b, y_a, y_b, hyperparameters):
+        self.cls_opt.zero_grad()
+        self.loss_cls_a = self.cls_a.calc_cls_loss(x_a, y_a, 'cls')
+        self.loss_cls_b = self.cls_b.calc_cls_loss(x_b, y_b, 'cls')
+        self.loss_cls_total = hyperparameters['cls_w'] * self.loss_cls_a + hyperparameters['cls_w'] * self.loss_cls_b
+        self.loss_cls_total.backward()
+        self.cls_opt.step()
+
+    @property
+    def gen_a_acc(self):
+        return self.cls_a.gen_count / self.cls_a.gen_total
+
+    @property
+    def gen_b_acc(self):
+        return self.cls_b.gen_count / self.cls_b.gen_total
+
+    @property
+    def cls_a_acc(self):
+        return self.cls_a.cls_count / self.cls_a.cls_total
+
+    @property
+    def cls_b_acc(self):
+        return self.cls_b.cls_count / self.cls_b.cls_total
 
     def update_learning_rate(self):
         if self.dis_scheduler is not None:
