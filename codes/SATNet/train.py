@@ -30,6 +30,7 @@ def main(opts, yield_mode=False):
     train_display_images_b = torch.stack([train_loader_b.dataset[i][0] for i in range(display_size)]).cuda()
     test_display_images_a = torch.stack([test_loader_a.dataset[i][0] for i in range(display_size)]).cuda()
     test_display_images_b = torch.stack([test_loader_b.dataset[i][0] for i in range(display_size)]).cuda()
+    assert train_loader_a.dataset.classes == train_loader_b.dataset.classes, 'train_loader a and b classes not equal'
     config['class_num_a'] = len(train_loader_a.dataset.classes)
     config['class_num_b'] = len(train_loader_b.dataset.classes)
     trainer = Trainer(config)

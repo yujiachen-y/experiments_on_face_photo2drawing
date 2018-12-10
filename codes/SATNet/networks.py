@@ -1,6 +1,5 @@
 """
-Copyright (C) 2018 NVIDIA Corporation.  All rights reserved.
-Licensed under the CC BY-NC-SA 4.0 license (https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode).
+Modified from https://github.com/NVlabs/MUNIT/blob/master/networks.py
 """
 from torch import nn
 from torch.autograd import Variable
@@ -85,6 +84,8 @@ class MsImageDis(nn.Module):
                 all1 = Variable(torch.ones_like(out1.data).cuda(), requires_grad=False)
                 loss += torch.mean(F.binary_cross_entropy(F.sigmoid(out0), all0) +
                                    F.binary_cross_entropy(F.sigmoid(out1), all1))
+            elif self.gan_type == 'hinge':
+                loss += torch.mean(F.relu(1 + out0)) + torch.mean(F.relu(1 - out1))
             else:
                 assert 0, "Unsupported GAN type: {}".format(self.gan_type)
         return loss
@@ -102,6 +103,8 @@ class MsImageDis(nn.Module):
             elif self.gan_type == 'nsgan':
                 all1 = Variable(torch.ones_like(out0.data).cuda(), requires_grad=False)
                 loss += torch.mean(F.binary_cross_entropy(F.sigmoid(out0), all1))
+            elif self.gan_type == 'hinge':
+                loss += -torch.mean(out0)
             else:
                 assert 0, "Unsupported GAN type: {}".format(self.gan_type)
         return loss
