@@ -53,7 +53,6 @@ class Classifier(nn.Module):
         x = self.model(x)
         if name is not None:
             self.count_acc(x, y, name)
-        # from IPython import embed; embed()
         return self.cel(x, y)
 
     def count_acc(self, x, y, name):

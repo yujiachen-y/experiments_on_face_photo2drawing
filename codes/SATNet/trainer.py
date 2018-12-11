@@ -246,13 +246,20 @@ class Trainer(nn.Module):
         state_dict = torch.load(last_model_name)
         self.dis_a.load_state_dict(state_dict['a'])
         self.dis_b.load_state_dict(state_dict['b'])
+        # load classifier
+        last_model_name = get_model_list(checkpoint_dir, "cls")
+        state_dict = torch.load(last_model_name)
+        self.cls_a.load_state_dict(state_dict['a'])
+        self.cls_b.load_state_dict(state_dict['b'])
         # Load optimizers
         state_dict = torch.load(os.path.join(checkpoint_dir, 'optimizer.pt'))
         self.dis_opt.load_state_dict(state_dict['dis'])
         self.gen_opt.load_state_dict(state_dict['gen'])
+        self.dis_opt.load_state_dict(state_dict['cls'])
         # Reinitilize schedulers
         self.dis_scheduler = get_scheduler(self.dis_opt, hyperparameters, iterations)
         self.gen_scheduler = get_scheduler(self.gen_opt, hyperparameters, iterations)
+        self.dis_scheduler = get_scheduler(self.dis_opt, hyperparameters['cls'], iterations)
         print('Resume from iteration %d' % iterations)
         return iterations
 
@@ -260,7 +267,9 @@ class Trainer(nn.Module):
         # Save generators, discriminators, and optimizers
         gen_name = os.path.join(snapshot_dir, 'gen_%08d.pt' % (iterations + 1))
         dis_name = os.path.join(snapshot_dir, 'dis_%08d.pt' % (iterations + 1))
+        cls_name = os.path.join(snapshot_dir, 'cls_%08d.pt' % (iterations + 1))
         opt_name = os.path.join(snapshot_dir, 'optimizer.pt')
         torch.save({'a': self.gen_a.state_dict(), 'b': self.gen_b.state_dict()}, gen_name)
         torch.save({'a': self.dis_a.state_dict(), 'b': self.dis_b.state_dict()}, dis_name)
+        torch.save({'a': self.cls_a.state_dict(), 'b': self.cls_b.state_dict()}, cls_name)
         torch.save({'gen': self.gen_opt.state_dict(), 'dis': self.dis_opt.state_dict()}, opt_name)
