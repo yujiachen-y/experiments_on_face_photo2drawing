@@ -4,6 +4,7 @@ import cv2
 import numpy as np
 
 from .utils import tqdm
+from ...sphereface.matlab_cp2tform import get_similarity_transform_for_cv2
 
 # 这里注意x代表的是横轴，y代表的是纵轴
 imgSize = np.array([128, 128])
@@ -72,6 +73,39 @@ def warp_img(img, landmark, image_type):
     return img, landmark
 
 
+def alignment(src_img, src_landmark):
+    offset = 2
+    ref_pts = [
+        [30.2946+offset, 51.6963+offset],
+        [65.5318+offset, 51.5014+offset],
+        [48.0252+offset, 71.7366+offset],
+        [33.5493+offset, 92.3655+offset],
+        [62.7299+offset, 92.2041+offset],
+    ]
+    crop_size = (96+offset*2, 112+offset)
+    src_pts = get_img5point(src_landmark)
+    src_pts = np.array(src_pts).reshape(5,2)
+
+    s = np.array(src_pts).astype(np.float32)
+    r = np.array(ref_pts).astype(np.float32)
+
+    tfm = get_similarity_transform_for_cv2(s, r)
+    face_img = cv2.warpAffine(src_img, tfm, crop_size)
+
+    dst_landmark = np.array(src_landmark)
+    dst_landmark = np.concatenate((
+        dst_landmark,
+        np.ones((dst_landmark.shape[0], 1))
+    ), axis=1)
+    tfm = np.concatenate((
+        tfm,
+        np.array(((0, 0, 1),)),
+    ), axis=0)
+    dst_landmark = np.dot(dst_landmark, tfm.T)[:, :2]
+    dst_landmark = [tuple(x) for x in dst_landmark]
+    return face_img, dst_landmark
+
+
 def generate_dataset_face_frontalization():
     from . import config
     from .datas import get_dirs, get_image, get_overview
@@ -89,7 +123,7 @@ def generate_dataset_face_frontalization():
     for people_name, image_type, image_name, landmark in tqdm(dataset_iterator(config.WC_original_dataset_name)):
         im_str = get_image(config.WC_original_dataset_name, people_name, image_name, show_landmark=0)
         im = im_str_to_np(im_str)
-        im, landmark = warp_img(im, landmark, image_type)
+        im, landmark = alignment(im, landmark)
 
         people_name = people_name.replace('_', ' ')
         file_dir = os.path.join(new_images_dir, people_name)
