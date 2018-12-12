@@ -19,12 +19,12 @@ class Trainer(nn.Module):
         lr_g = hyperparameters['lr_g']
         lr_c = hyperparameters['cls']['lr']
         # Initiate the networks
-        self.gen_a = AdaINGen(hyperparameters['input_dim_a'], hyperparameters['gen'])  # auto-encoder for domain a
-        self.gen_b = AdaINGen(hyperparameters['input_dim_b'], hyperparameters['gen'])  # auto-encoder for domain b
-        self.dis_a = MsImageDis(hyperparameters['input_dim_a'], hyperparameters['dis'])  # discriminator for domain a
-        self.dis_b = MsImageDis(hyperparameters['input_dim_b'], hyperparameters['dis'])  # discriminator for domain b
-        self.cls_a = Classifier(hyperparameters['input_dim_a'], hyperparameters['cls'], hyperparameters['class_num_b'])
-        self.cls_b = Classifier(hyperparameters['input_dim_b'], hyperparameters['cls'], hyperparameters['class_num_b'])
+        self.gen_a = AdaINGen(hyperparameters['input_dim_a'], hyperparameters['gen'], name='gen_a')  # auto-encoder for domain a
+        self.gen_b = AdaINGen(hyperparameters['input_dim_b'], hyperparameters['gen'], name='gen_b')  # auto-encoder for domain b
+        self.dis_a = MsImageDis(hyperparameters['input_dim_a'], hyperparameters['dis'], name='dis_a')  # discriminator for domain a
+        self.dis_b = MsImageDis(hyperparameters['input_dim_b'], hyperparameters['dis'], name='dis_a')  # discriminator for domain b
+        self.cls_a = Classifier(hyperparameters['input_dim_a'], hyperparameters['cls'], hyperparameters['class_num_b'], name='cls_a')
+        self.cls_b = Classifier(hyperparameters['input_dim_b'], hyperparameters['cls'], hyperparameters['class_num_b'], name='cls_b')
         self.instancenorm = nn.InstanceNorm2d(512, affine=False)
         self.style_dim = hyperparameters['gen']['style_dim']
 
@@ -212,21 +212,10 @@ class Trainer(nn.Module):
         self.loss_cls_total.backward()
         self.cls_opt.step()
 
-    @property
-    def gen_a_acc(self):
-        return self.cls_a.gen_count / self.cls_a.gen_total
-
-    @property
-    def gen_b_acc(self):
-        return self.cls_b.gen_count / self.cls_b.gen_total
-
-    @property
-    def cls_a_acc(self):
-        return self.cls_a.cls_count / self.cls_a.cls_total
-
-    @property
-    def cls_b_acc(self):
-        return self.cls_b.cls_count / self.cls_b.cls_total
+    def get_info(self):
+        return self.gen_a.get_info() + self.gen_b.get_info() + \
+               self.dis_a.get_info() + self.dis_b.get_info() + \
+               self.cls_a.get_info() + self.cls_b.get_info()
 
     def update_learning_rate(self):
         if self.dis_scheduler is not None:

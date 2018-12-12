@@ -15,8 +15,11 @@ except ImportError: # will be 3.x series
 ##################################################################################
 
 class Classifier(nn.Module):
-    def __init__(self, input_dim, params, class_num):
+    def __init__(self, input_dim, params, class_num, name=None):
         super(Classifier, self).__init__()
+        if name is not None:
+            self.name = name
+
         self.input_dim = input_dim
         self.dim = params['dim']
         self.activ = params['activ']
@@ -24,6 +27,7 @@ class Classifier(nn.Module):
         self.n_res = params['n_res']
         self.pad_type = params['pad_type']
         self.norm = params['norm']
+        self.id_dim = params['id_dim']
         
         self.gen_total = 0
         self.gen_count = 0
@@ -40,7 +44,7 @@ class Classifier(nn.Module):
         for i in range(self.n_downsample - 2):
             self.model += [Conv2dBlock(dim, dim, 4, 2, 1, norm=self.norm, activation=self.activ, pad_type=self.pad_type)]
         self.model += [ResBlocks(self.n_res, dim, norm=self.norm, activation=self.activ, pad_type=self.pad_type)]
-        self.model += [MLP(int(dim*((256/(2**self.n_downsample))**2)), self.class_num, self.dim, 1, norm=self.norm, activ=self.activ)]
+        self.model += [MLP(int(dim*((128/(2**self.n_downsample))**2)), self.class_num, self.id_dim, 2, norm='none', activ=self.activ)]
         self.model += [nn.Softmax(dim=-1)]
         self.model = nn.Sequential(*self.model)
 
@@ -63,6 +67,12 @@ class Classifier(nn.Module):
         setattr(self, name+'_total', total)
         setattr(self, name+'_count', count)
 
+    def get_info(self):
+        return [
+            (self.name+'_gen_acc', self.gen_count / self.gen_total),
+            (self.name+'_cls_acc', self.cls_count / self.cls_total),
+        ]
+
 
 ##################################################################################
 # Discriminator
@@ -70,8 +80,11 @@ class Classifier(nn.Module):
 
 class MsImageDis(nn.Module):
     # Multi-scale discriminator architecture
-    def __init__(self, input_dim, params):
+    def __init__(self, input_dim, params, name=None):
         super(MsImageDis, self).__init__()
+        if name is not None:
+            self.name = name
+
         self.n_layer = params['n_layer']
         self.gan_type = params['gan_type']
         self.dim = params['dim']
@@ -89,6 +102,8 @@ class MsImageDis(nn.Module):
         dim = self.dim
         cnn_x = []
         cnn_x += [Conv2dBlock(self.input_dim, dim, 4, 2, 1, norm='none', activation=self.activ, pad_type=self.pad_type)]
+        # Self Attention layer
+        cnn_x += [SelfAttention(dim, norm='none')]
         for i in range(self.n_layer - 1):
             cnn_x += [Conv2dBlock(dim, dim * 2, 4, 2, 1, norm=self.norm, activation=self.activ, pad_type=self.pad_type)]
             dim *= 2
@@ -140,14 +155,22 @@ class MsImageDis(nn.Module):
                 assert 0, "Unsupported GAN type: {}".format(self.gan_type)
         return loss
 
+    def get_info(self):
+        return [
+            (self.name+'_gamma_{}'.format(i), self.cnns[i][1].get_info()) for i in self.num_scales
+        ]
+
 ##################################################################################
 # Generator
 ##################################################################################
 
 class AdaINGen(nn.Module):
     # AdaIN auto-encoder architecture
-    def __init__(self, input_dim, params):
+    def __init__(self, input_dim, params, name=None):
         super(AdaINGen, self).__init__()
+        if name is not None:
+            self.name = name
+
         dim = params['dim']
         style_dim = params['style_dim']
         n_downsample = params['n_downsample']
@@ -203,6 +226,12 @@ class AdaINGen(nn.Module):
             if m.__class__.__name__ == "AdaptiveInstanceNorm2d":
                 num_adain_params += 2*m.num_features
         return num_adain_params
+
+    def get_info(self):
+        return [
+            (self.name+'_gamma_0', self.enc_content.model[4].get_info()),
+            (self.name+'_gamma_1', self.dec.model[1].get_info())
+        ]
 
 
 class VAEGen(nn.Module):
@@ -270,6 +299,8 @@ class ContentEncoder(nn.Module):
         for i in range(n_downsample):
             self.model += [Conv2dBlock(dim, 2 * dim, 4, 2, 1, norm=norm, activation=activ, pad_type=pad_type)]
             dim *= 2
+        # Self Attention layer
+        self.model += [SelfAttention(dim, norm='none')]
         # residual blocks
         self.model += [ResBlocks(n_res, dim, norm=norm, activation=activ, pad_type=pad_type)]
         self.model = nn.Sequential(*self.model)
@@ -285,6 +316,8 @@ class Decoder(nn.Module):
         self.model = []
         # AdaIN residual blocks
         self.model += [ResBlocks(n_res, dim, res_norm, activ, pad_type=pad_type)]
+        # Self Attention layer
+        self.model += [SelfAttention(dim, norm='none')]
         # upsampling blocks
         for i in range(n_upsample):
             self.model += [nn.Upsample(scale_factor=2),
@@ -331,6 +364,36 @@ class MLP(nn.Module):
 ##################################################################################
 # Basic Blocks
 ##################################################################################
+class SelfAttention(nn.Module):
+    def __init__(self, input_dim, norm='none', eps=1e-8):
+        super(SelfAttention, self).__init__()
+
+        self.f_conv = nn.Conv2d(input_dim, input_dim//8, 1)
+        self.g_conv = nn.Conv2d(input_dim, input_dim//8, 1)
+        self.k_conv = nn.Conv2d(input_dim, input_dim, 1)
+        self.gamma = nn.Parameter(torch.zeros(1)+eps)
+        self.softmax = nn.Softmax(dim=-1)
+
+        if norm == 'sn':
+            self.f_conv = SpectralNorm(self.f_conv)
+            self.g_conv = SpectralNorm(self.g_conv)
+            self.k_conv = SpectralNorm(self.k_conv)
+        elif norm != 'none':
+            raise NotImplementedError
+
+    def forward(self, x):
+        b, c, w, h = x.shape
+        f = self.f_conv(x).view(b, -1, w*h)
+        g = self.g_conv(x).view(b, -1, w*h)
+        k = self.k_conv(x).view(b, -1, w*h)
+        # attention.shape = (b, w*h, w*h)
+        attention = self.softmax(torch.bmm(f.permute(0, 2, 1), g))
+        out = torch.bmm(k, attention.permute(0, 2, 1)).view(b, c, w, h)
+        return self.gamma * out + x
+
+    def get_info(self):
+        return float(self.gamma.data)
+
 class ResBlock(nn.Module):
     def __init__(self, dim, norm='in', activation='relu', pad_type='zero'):
         super(ResBlock, self).__init__()
