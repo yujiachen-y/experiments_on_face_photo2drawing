@@ -98,15 +98,17 @@ class MsImageDis(nn.Module):
         for _ in range(self.num_scales):
             self.cnns.append(self._make_net())
 
+        self.gammas = [param for name, param in self.named_parameters() if 'gamma' in name and 'norm' not in name]
+
     def _make_net(self):
         dim = self.dim
         cnn_x = []
         cnn_x += [Conv2dBlock(self.input_dim, dim, 4, 2, 1, norm='none', activation=self.activ, pad_type=self.pad_type)]
-        # Self Attention layer
-        cnn_x += [SelfAttention(dim, norm='none')]
         for i in range(self.n_layer - 1):
             cnn_x += [Conv2dBlock(dim, dim * 2, 4, 2, 1, norm=self.norm, activation=self.activ, pad_type=self.pad_type)]
             dim *= 2
+        # Self Attention layer
+        cnn_x += [SelfAttention(dim, norm=self.norm)]
         cnn_x += [nn.Conv2d(dim, 1, 1, 1, 0)]
         cnn_x = nn.Sequential(*cnn_x)
         return cnn_x
@@ -157,7 +159,7 @@ class MsImageDis(nn.Module):
 
     def get_info(self):
         return [
-            (self.name+'_gamma_{}'.format(i), self.cnns[i][1].get_info()) for i in self.num_scales
+            (self.name+'_gamma_%d'%i, float(gamma)) for i, gamma in enumerate(self.gammas)
         ]
 
 ##################################################################################
@@ -188,6 +190,8 @@ class AdaINGen(nn.Module):
 
         # MLP to generate AdaIN parameters
         self.mlp = MLP(style_dim, self.get_num_adain_params(self.dec), mlp_dim, 3, norm='none', activ=activ)
+
+        self.gammas = [param for name, param in self.named_parameters() if 'gamma' in name and 'norm' not in name]
 
     def forward(self, images):
         # reconstruct an image
@@ -229,8 +233,7 @@ class AdaINGen(nn.Module):
 
     def get_info(self):
         return [
-            (self.name+'_gamma_0', self.enc_content.model[4].get_info()),
-            (self.name+'_gamma_1', self.dec.model[1].get_info())
+            (self.name+'_gamma_%d'%i, float(gamma)) for i, gamma in enumerate(self.gammas)
         ]
 
 
@@ -299,10 +302,11 @@ class ContentEncoder(nn.Module):
         for i in range(n_downsample):
             self.model += [Conv2dBlock(dim, 2 * dim, 4, 2, 1, norm=norm, activation=activ, pad_type=pad_type)]
             dim *= 2
-        # Self Attention layer
-        self.model += [SelfAttention(dim, norm='none')]
         # residual blocks
         self.model += [ResBlocks(n_res, dim, norm=norm, activation=activ, pad_type=pad_type)]
+        # Self Attention layer with ResBlock
+        self.model += [SelfAttention(dim, norm='none')]
+        self.model += [ResBlock(dim, norm=norm, activation=activ, pad_type=pad_type)]
         self.model = nn.Sequential(*self.model)
         self.output_dim = dim
 
@@ -316,8 +320,9 @@ class Decoder(nn.Module):
         self.model = []
         # AdaIN residual blocks
         self.model += [ResBlocks(n_res, dim, res_norm, activ, pad_type=pad_type)]
-        # Self Attention layer
+        # Self Attention layer with ResBlock
         self.model += [SelfAttention(dim, norm='none')]
+        self.model += [ResBlock(dim, norm=res_norm, activation=activ, pad_type=pad_type)]
         # upsampling blocks
         for i in range(n_upsample):
             self.model += [nn.Upsample(scale_factor=2),
@@ -391,8 +396,6 @@ class SelfAttention(nn.Module):
         out = torch.bmm(k, attention.permute(0, 2, 1)).view(b, c, w, h)
         return self.gamma * out + x
 
-    def get_info(self):
-        return float(self.gamma.data)
 
 class ResBlock(nn.Module):
     def __init__(self, dim, norm='in', activation='relu', pad_type='zero'):
