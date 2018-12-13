@@ -8,25 +8,32 @@ import torch
 import torch.nn as nn
 import torchvision.utils as vutils
 from torch.autograd import Variable
+from torch.nn import functional as F
 
-from networks import AdaINGen, MsImageDis, Classifier
-from utils import get_model_list, get_scheduler, weights_init, vgg_preprocess
+from networks import AdaINGen, MsImageDis, sphere20a
+from utils import get_model_list, get_scheduler, vgg_preprocess, weights_init, sphereface_preprocess
+
 
 class Trainer(nn.Module):
     def __init__(self, hyperparameters):
         super(Trainer, self).__init__()
         lr_d = hyperparameters['lr_d']
         lr_g = hyperparameters['lr_g']
-        lr_c = hyperparameters['cls']['lr']
         # Initiate the networks
         self.gen_a = AdaINGen(hyperparameters['input_dim_a'], hyperparameters['gen'], name='gen_a')  # auto-encoder for domain a
         self.gen_b = AdaINGen(hyperparameters['input_dim_b'], hyperparameters['gen'], name='gen_b')  # auto-encoder for domain b
         self.dis_a = MsImageDis(hyperparameters['input_dim_a'], hyperparameters['dis'], name='dis_a')  # discriminator for domain a
         self.dis_b = MsImageDis(hyperparameters['input_dim_b'], hyperparameters['dis'], name='dis_a')  # discriminator for domain b
-        self.cls_a = Classifier(hyperparameters['input_dim_a'], hyperparameters['cls'], hyperparameters['class_num_b'], name='cls_a')
-        self.cls_b = Classifier(hyperparameters['input_dim_b'], hyperparameters['cls'], hyperparameters['class_num_b'], name='cls_b')
         self.instancenorm = nn.InstanceNorm2d(512, affine=False)
         self.style_dim = hyperparameters['gen']['style_dim']
+
+        if hyperparameters['sph_w'] != 0:
+            self.sphereface = sphere20a(hyperparameters['sph']['classnum'])
+            self.sphereface.load_state_dict(torch.load(hyperparameters['sph']['model_path']))
+            self.sphereface.feature = True
+            self.sphereface.eval()
+            for param in self.sphereface.parameters():
+                param.requires_grad = False
 
         # fix the noise used in sampling
         display_size = int(hyperparameters['display_size'])
@@ -38,16 +45,12 @@ class Trainer(nn.Module):
         beta2 = hyperparameters['beta2']
         dis_params = list(self.dis_a.parameters()) + list(self.dis_b.parameters())
         gen_params = list(self.gen_a.parameters()) + list(self.gen_b.parameters())
-        cls_params = list(self.cls_a.parameters()) + list(self.cls_b.parameters())
         self.dis_opt = torch.optim.Adam([p for p in dis_params if p.requires_grad],
                                         lr=lr_d, betas=(beta1, beta2), weight_decay=hyperparameters['weight_decay'])
         self.gen_opt = torch.optim.Adam([p for p in gen_params if p.requires_grad],
                                         lr=lr_g, betas=(beta1, beta2), weight_decay=hyperparameters['weight_decay'])
-        self.cls_opt = torch.optim.Adam([p for p in cls_params if p.requires_grad],
-                                        lr=lr_c, betas=(beta1, beta2), weight_decay=hyperparameters['weight_decay'])
         self.dis_scheduler = get_scheduler(self.dis_opt, hyperparameters)
         self.gen_scheduler = get_scheduler(self.gen_opt, hyperparameters)
-        self.cls_scheduler = get_scheduler(self.cls_opt, hyperparameters['cls'])
 
         # Network weight initialization
         self.apply(weights_init(hyperparameters['init']))
@@ -100,16 +103,13 @@ class Trainer(nn.Module):
         # GAN loss
         self.loss_gen_adv_a = self.dis_a.calc_gen_loss(x_ba)
         self.loss_gen_adv_b = self.dis_b.calc_gen_loss(x_ab)
-        # cls loss
-        self.cls_a.eval()
-        self.cls_b.eval()
-        self.loss_gen_cls_a = self.cls_a.calc_cls_loss(x_ba, y_b, 'gen')
-        self.loss_gen_cls_b = self.cls_b.calc_cls_loss(x_ab, y_a, 'gen')
-        self.cls_a.train()
-        self.cls_b.train()
         # domain-invariant perceptual loss
         self.loss_gen_vgg_a = self.compute_vgg_loss(self.vgg, x_ba, x_b) if hyperparameters['vgg_w'] > 0 else 0
         self.loss_gen_vgg_b = self.compute_vgg_loss(self.vgg, x_ab, x_a) if hyperparameters['vgg_w'] > 0 else 0
+        # domain-invariant identity loss
+        self.sphereface.eval()
+        self.loss_gen_idt_a = self.compute_idt_loss(x_ab, x_a, hyperparameters['sph']) if hyperparameters['sph_w'] > 0 else 0
+        self.loss_gen_idt_b = self.compute_idt_loss(x_ba, x_b, hyperparameters['sph']) if hyperparameters['sph_w'] > 0 else 0
         # total loss
         self.loss_gen_total = hyperparameters['gan_w'] * self.loss_gen_adv_a + \
                               hyperparameters['gan_w'] * self.loss_gen_adv_b + \
@@ -121,8 +121,8 @@ class Trainer(nn.Module):
                               hyperparameters['recon_c_w'] * self.loss_gen_recon_c_b + \
                               hyperparameters['recon_x_cyc_w'] * self.loss_gen_cycrecon_x_a + \
                               hyperparameters['recon_x_cyc_w'] * self.loss_gen_cycrecon_x_b + \
-                              hyperparameters['cls_w'] * self.loss_gen_cls_a + \
-                              hyperparameters['cls_w'] * self.loss_gen_cls_b + \
+                              hyperparameters['sph_w'] * self.loss_gen_idt_a + \
+                              hyperparameters['sph_w'] * self.loss_gen_idt_b + \
                               hyperparameters['vgg_w'] * self.loss_gen_vgg_a + \
                               hyperparameters['vgg_w'] * self.loss_gen_vgg_b
         self.loss_gen_total.backward()
@@ -134,6 +134,15 @@ class Trainer(nn.Module):
         img_fea = vgg(img_vgg)
         target_fea = vgg(target_vgg)
         return torch.mean((self.instancenorm(img_fea) - self.instancenorm(target_fea)) ** 2)
+
+    def compute_idt_loss(self, img, target, config):
+        img_sph = sphereface_preprocess(img)
+        target_sph = sphereface_preprocess(target)
+        img_idt = self.sphereface(img_sph)
+        target_idt = self.sphereface(target_sph)
+        cosdistance = torch.sum(img_idt * target_idt) / (img_idt.norm() * target_idt.norm() + 1e-8)
+        idt_loss = F.relu(config['thd'] - cosdistance)
+        return idt_loss
 
     def yield_mode_sample(self, d_a, d_b, image_directory, iterations):
         x_a_recon_path = os.path.join(image_directory, 'a_recon_%08d' % (iterations + 1))
@@ -204,18 +213,9 @@ class Trainer(nn.Module):
         self.loss_dis_total.backward()
         self.dis_opt.step()
 
-    def cls_update(self, x_a, x_b, y_a, y_b, hyperparameters):
-        self.cls_opt.zero_grad()
-        self.loss_cls_a = self.cls_a.calc_cls_loss(x_a, y_a, 'cls')
-        self.loss_cls_b = self.cls_b.calc_cls_loss(x_b, y_b, 'cls')
-        self.loss_cls_total = hyperparameters['cls_w'] * self.loss_cls_a + hyperparameters['cls_w'] * self.loss_cls_b
-        self.loss_cls_total.backward()
-        self.cls_opt.step()
-
     def get_info(self):
         return self.gen_a.get_info() + self.gen_b.get_info() + \
-               self.dis_a.get_info() + self.dis_b.get_info() + \
-               self.cls_a.get_info() + self.cls_b.get_info()
+               self.dis_a.get_info() + self.dis_b.get_info()
 
     def update_learning_rate(self):
         if self.dis_scheduler is not None:
@@ -235,20 +235,13 @@ class Trainer(nn.Module):
         state_dict = torch.load(last_model_name)
         self.dis_a.load_state_dict(state_dict['a'])
         self.dis_b.load_state_dict(state_dict['b'])
-        # load classifier
-        last_model_name = get_model_list(checkpoint_dir, "cls")
-        state_dict = torch.load(last_model_name)
-        self.cls_a.load_state_dict(state_dict['a'])
-        self.cls_b.load_state_dict(state_dict['b'])
         # Load optimizers
         state_dict = torch.load(os.path.join(checkpoint_dir, 'optimizer.pt'))
         self.dis_opt.load_state_dict(state_dict['dis'])
         self.gen_opt.load_state_dict(state_dict['gen'])
-        self.dis_opt.load_state_dict(state_dict['cls'])
         # Reinitilize schedulers
         self.dis_scheduler = get_scheduler(self.dis_opt, hyperparameters, iterations)
         self.gen_scheduler = get_scheduler(self.gen_opt, hyperparameters, iterations)
-        self.dis_scheduler = get_scheduler(self.dis_opt, hyperparameters['cls'], iterations)
         print('Resume from iteration %d' % iterations)
         return iterations
 
@@ -256,9 +249,7 @@ class Trainer(nn.Module):
         # Save generators, discriminators, and optimizers
         gen_name = os.path.join(snapshot_dir, 'gen_%08d.pt' % (iterations + 1))
         dis_name = os.path.join(snapshot_dir, 'dis_%08d.pt' % (iterations + 1))
-        cls_name = os.path.join(snapshot_dir, 'cls_%08d.pt' % (iterations + 1))
         opt_name = os.path.join(snapshot_dir, 'optimizer.pt')
         torch.save({'a': self.gen_a.state_dict(), 'b': self.gen_b.state_dict()}, gen_name)
         torch.save({'a': self.dis_a.state_dict(), 'b': self.dis_b.state_dict()}, dis_name)
-        torch.save({'a': self.cls_a.state_dict(), 'b': self.cls_b.state_dict()}, cls_name)
         torch.save({'gen': self.gen_opt.state_dict(), 'dis': self.dis_opt.state_dict()}, opt_name)

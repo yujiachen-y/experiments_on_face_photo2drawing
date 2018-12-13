@@ -17,7 +17,7 @@ from torch.utils.data import DataLoader
 from torch.utils.serialization import load_lua
 from torchvision import transforms
 
-from data import ImageFilelist, ImageFolder, ImageLabelFileInfo
+from data import ImageFilelist, ImageFolder, ImageLabelFileInfo, WCDataset
 
 # Methods
 # get_all_data_loaders      : primary data loader interface (load trainA, testA, trainB, testB)
@@ -50,33 +50,41 @@ def get_all_data_loaders(conf):
     height = conf['crop_image_height']
     width = conf['crop_image_width']
 
-    if 'data_root' in conf:
-        train_loader_a = get_data_loader_folder(os.path.join(conf['data_root'], 'trainA'), batch_size, True,
-                                              new_size_a, height, width, num_workers, True)
-        test_loader_a = get_data_loader_folder(os.path.join(conf['data_root'], 'testA'), batch_size, False,
-                                             new_size_a, new_size_a, new_size_a, num_workers, True)
-        train_loader_b = get_data_loader_folder(os.path.join(conf['data_root'], 'trainB'), batch_size, True,
-                                              new_size_b, height, width, num_workers, True)
-        test_loader_b = get_data_loader_folder(os.path.join(conf['data_root'], 'testB'), batch_size, False,
-                                             new_size_b, new_size_b, new_size_b, num_workers, True)
-    elif 'data_info' in conf:
-        train_loader_a = get_data_loader_info(os.path.join(conf['data_info'], 'trainA'), batch_size, True,
-                                              new_size_a, height, width, num_workers, True)
-        test_loader_a = get_data_loader_info(os.path.join(conf['data_info'], 'testA'), batch_size, False,
-                                             new_size_a, new_size_a, new_size_a, num_workers, True)
-        train_loader_b = get_data_loader_info(os.path.join(conf['data_info'], 'trainB'), batch_size, True,
-                                              new_size_b, height, width, num_workers, True)
-        test_loader_b = get_data_loader_info(os.path.join(conf['data_info'], 'testB'), batch_size, False,
-                                             new_size_b, new_size_b, new_size_b, num_workers, True)
-    else:
-        train_loader_a = get_data_loader_list(conf['data_folder_train_a'], conf['data_list_train_a'], batch_size, True,
-                                                new_size_a, height, width, num_workers, True)
-        test_loader_a = get_data_loader_list(conf['data_folder_test_a'], conf['data_list_test_a'], batch_size, False,
-                                                new_size_a, new_size_a, new_size_a, num_workers, True)
-        train_loader_b = get_data_loader_list(conf['data_folder_train_b'], conf['data_list_train_b'], batch_size, True,
-                                                new_size_b, height, width, num_workers, True)
-        test_loader_b = get_data_loader_list(conf['data_folder_test_b'], conf['data_list_test_b'], batch_size, False,
-                                                new_size_b, new_size_b, new_size_b, num_workers, True)
+    train_loader_a = get_WCdata_loader(conf['data_root'], 'c', batch_size, True,
+                                       new_size_a, height, width, num_workers, True)
+    test_loader_a = get_WCdata_loader(conf['data_root'], 'c', batch_size, False,
+                                      width, height, width, num_workers, True)
+    train_loader_b = get_WCdata_loader(conf['data_root'], 'p', batch_size, True,
+                                       new_size_b, height, width, num_workers, True)
+    test_loader_b = get_WCdata_loader(conf['data_root'], 'p', batch_size, False,
+                                      width, height, width, num_workers, True)
+    # if 'data_root' in conf:
+    #     train_loader_a = get_data_loader_folder(os.path.join(conf['data_root'], 'trainA'), batch_size, True,
+    #                                           new_size_a, height, width, num_workers, True)
+    #     test_loader_a = get_data_loader_folder(os.path.join(conf['data_root'], 'testA'), batch_size, False,
+    #                                          new_size_a, new_size_a, new_size_a, num_workers, True)
+    #     train_loader_b = get_data_loader_folder(os.path.join(conf['data_root'], 'trainB'), batch_size, True,
+    #                                           new_size_b, height, width, num_workers, True)
+    #     test_loader_b = get_data_loader_folder(os.path.join(conf['data_root'], 'testB'), batch_size, False,
+    #                                          new_size_b, new_size_b, new_size_b, num_workers, True)
+    # elif 'data_info' in conf:
+    #     train_loader_a = get_data_loader_info(os.path.join(conf['data_info'], 'trainA'), batch_size, True,
+    #                                           new_size_a, height, width, num_workers, True)
+    #     test_loader_a = get_data_loader_info(os.path.join(conf['data_info'], 'testA'), batch_size, False,
+    #                                          new_size_a, new_size_a, new_size_a, num_workers, True)
+    #     train_loader_b = get_data_loader_info(os.path.join(conf['data_info'], 'trainB'), batch_size, True,
+    #                                           new_size_b, height, width, num_workers, True)
+    #     test_loader_b = get_data_loader_info(os.path.join(conf['data_info'], 'testB'), batch_size, False,
+    #                                          new_size_b, new_size_b, new_size_b, num_workers, True)
+    # else:
+    #     train_loader_a = get_data_loader_list(conf['data_folder_train_a'], conf['data_list_train_a'], batch_size, True,
+    #                                             new_size_a, height, width, num_workers, True)
+    #     test_loader_a = get_data_loader_list(conf['data_folder_test_a'], conf['data_list_test_a'], batch_size, False,
+    #                                             new_size_a, new_size_a, new_size_a, num_workers, True)
+    #     train_loader_b = get_data_loader_list(conf['data_folder_train_b'], conf['data_list_train_b'], batch_size, True,
+    #                                             new_size_b, height, width, num_workers, True)
+    #     test_loader_b = get_data_loader_list(conf['data_folder_test_b'], conf['data_list_test_b'], batch_size, False,
+    #                                             new_size_b, new_size_b, new_size_b, num_workers, True)
     return train_loader_a, train_loader_b, test_loader_a, test_loader_b
 
 
@@ -118,6 +126,20 @@ def get_data_loader_info(input_folder, batch_size, train, new_size=None,
     transform_list = [transforms.RandomHorizontalFlip()] + transform_list if train else transform_list
     transform = transforms.Compose(transform_list)
     dataset = ImageLabelFileInfo(input_folder, transform=transform)
+    loader = DataLoader(dataset=dataset, batch_size=batch_size, shuffle=train, drop_last=True, num_workers=num_workers)
+    return loader
+
+
+def get_WCdata_loader(dataset_path, data_type, batch_size, train, new_size=None,
+                      height=112, width=96, num_workers=4, crop=True):
+    transform_list = [transforms.ToTensor(),
+                      transforms.Normalize((0.5, 0.5, 0.5),
+                                           (0.5, 0.5, 0.5))]
+    transform_list = [transforms.RandomCrop((height, width))] + transform_list if crop else transform_list
+    transform_list = [transforms.Resize(new_size)] + transform_list if new_size is not None else transform_list
+    transform_list = [transforms.RandomHorizontalFlip()] + transform_list if train else transform_list
+    transform = transforms.Compose(transform_list)
+    dataset = WCDataset(dataset_path, train, data_type, transform=transform)
     loader = DataLoader(dataset=dataset, batch_size=batch_size, shuffle=train, drop_last=True, num_workers=num_workers)
     return loader
 
@@ -286,6 +308,12 @@ def vgg_preprocess(batch):
     batch = batch.sub(Variable(mean)) # subtract mean
     return batch
 
+def sphereface_preprocess(batch):
+    (r, g, b) = torch.chunk(batch, 3, dim = 1)
+    batch = torch.cat((b, g, r), dim = 1) # convert RGB to BGR
+    batch = (batch + 1) * 255 * 0.5 # [-1, 1] -> [0, 255]
+    batch = (batch - 127.5) / 128.
+    return batch
 
 def get_scheduler(optimizer, hyperparameters, iterations=-1):
     if 'lr_policy' not in hyperparameters or hyperparameters['lr_policy'] == 'constant':

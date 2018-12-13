@@ -89,6 +89,48 @@ class ImageLabelFileInfo(data.Dataset):
     def __len__(self):
         return len(self.imgs)
 
+
+class WCDataset(data.Dataset):
+    def __init__(self, dataset_path, is_train, data_type, transform=None, loader=default_loader):
+        self.transform = transform
+        self.loader = loader
+        training_file = os.path.join(
+            dataset_path,
+            'EvaluationProtocols',
+            'FaceVerification',
+            'UnRestricted',
+            'UnRestrictedView1_Dev%s.txt' % ('Train' if is_train else 'Test'),
+        )
+        with open(training_file) as f:
+            self.class_num = int(f.readline())
+            self.class_names = []
+            self.images = []
+            for i in range(self.class_num):
+                words = f.readline().split()
+                class_name = ' '.join(words[:-2])
+                self.class_names.append(class_name)
+                if data_type == 'c':
+                    self.images += [
+                        (os.path.join(dataset_path, 'OriginalImages', class_name, 'C%05d.jpg'%(j+1)), i) for j in range(int(words[-2]))
+                    ]
+                elif data_type == 'p':
+                    self.images += [
+                        (os.path.join(dataset_path, 'OriginalImages', class_name, 'P%05d.jpg'%(j+1)), i) for j in range(int(words[-1]))
+                    ]
+                else:
+                    assert 0, 'only support data_type in c|p'
+
+    def __len__(self):
+        return len(self.images)
+
+    def __getitem__(self, idx):
+        image_path, label = self.images[idx]
+        img = self.loader(image_path)
+        if self.transform is not None:
+            img = self.transform(img)
+        return img, label
+
+
 ###############################################################################
 # Code from
 # https://github.com/pytorch/vision/blob/master/torchvision/datasets/folder.py

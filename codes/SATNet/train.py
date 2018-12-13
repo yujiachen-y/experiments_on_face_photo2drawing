@@ -25,16 +25,13 @@ def main(opts, yield_mode=False):
     config['vgg_model_path'] = opts.output_path
 
     # Setup model and data loader
+    trainer = Trainer(config)
+    trainer.cuda()
     train_loader_a, train_loader_b, test_loader_a, test_loader_b = get_all_data_loaders(config)
     train_display_images_a = torch.stack([train_loader_a.dataset[i][0] for i in range(display_size)]).cuda()
     train_display_images_b = torch.stack([train_loader_b.dataset[i][0] for i in range(display_size)]).cuda()
     test_display_images_a = torch.stack([test_loader_a.dataset[i][0] for i in range(display_size)]).cuda()
     test_display_images_b = torch.stack([test_loader_b.dataset[i][0] for i in range(display_size)]).cuda()
-    assert train_loader_a.dataset.classes == train_loader_b.dataset.classes, 'train_loader a and b classes not equal'
-    config['class_num_a'] = len(train_loader_a.dataset.classes)
-    config['class_num_b'] = len(train_loader_b.dataset.classes)
-    trainer = Trainer(config)
-    trainer.cuda()
 
     # Setup logger and output folders
     from git import Repo
@@ -56,7 +53,6 @@ def main(opts, yield_mode=False):
             with Timer("Elapsed time in update: %f"):
                 # Main training code
                 trainer.dis_update(images_a, images_b, config)
-                trainer.cls_update(images_a, images_b, labels_a, labels_b, config)
                 trainer.gen_update(images_a, images_b, labels_a, labels_b, config)
                 torch.cuda.synchronize()
 
@@ -79,8 +75,8 @@ def main(opts, yield_mode=False):
                     paths = trainer.yield_mode_sample(test_loader_a.dataset, test_loader_b.dataset,
                                                       image_directory, iterations)
                     paths = list(paths)
-                    paths.append(os.path.join(config['data_info'], 'testA.npz'))
-                    paths.append(os.path.join(config['data_info'], 'testB.npz'))
+                    paths.append(config['afid_path'])
+                    paths.append(config['bfid_path'])
                     other_losses = yield paths
                     write_loss(iterations, None, train_writer, other_losses)
 
