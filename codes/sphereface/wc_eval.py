@@ -136,29 +136,16 @@ def calc_roc(predicts):
     return far3, far2, auc
 
 
-def get_predicts(dataset_path, model_path):
-    model_name = os.path.splitext(os.path.split(model_path)[1])[0]
-    feats_path = os.path.join(dataset_path, model_name+'.pkl')
-    if os.path.exists(feats_path):
-        predicts, folds_length = pickle.load(open(feats_path, 'rb'))
-        return predicts, folds_length
-    
-    predicts=[]
-    net = sphere20a()
-    net.load_state_dict(torch.load(model_path))
-    net.cuda()
-    net.eval()
-    net.feature = True
-
-    with open(os.path.join(dataset_path,
-                           'EvaluationProtocols',
-                           'FaceVerification',
-                           'Restricted',
-                           'RestrictedView2.txt',
-                           )) as f:
+def resticted_fold_iter(dataset_path, folds_length):
+    with open(os.path.join(
+        dataset_path,
+        'EvaluationProtocols',
+        'FaceVerification',
+        'Restricted',
+        'RestrictedView2.txt',
+    )) as f:
         pairs_lines = iter(f.readlines())
 
-    folds_length = []
     for fold_idx in range(10):
         fold_length = int(next(pairs_lines)) * 2
         folds_length.append(fold_length)
@@ -184,40 +171,98 @@ def get_predicts(dataset_path, model_path):
                             name2 = os.path.join(' '.join(name2), word)
                         else:
                             name2.append(word)
+            yield name1, name2, sameflag
+
+
+def unresticted_fold_iter(dataset_path, folds_length, fold_length=1000, seed=1):    
+    def get_img_name(people, num):
+        if num < people[1]:
+            return os.path.join(people[0], 'C%05d'%(num+1))
+        else:
+            num -= people[1]
+            return os.path.join(people[0], 'P%05d'%(num+1))
+
+    def sample_2(num):
+        a = rng.randint(num)
+        b = (a + 1 + rng.randint(num-1)) % num
+        return a, b
+    
+    rng = np.random.RandomState(seed)
+    
+    with open(os.path.join(
+        dataset_path,
+        'EvaluationProtocols',
+        'FaceVerification',
+        'UnRestricted',
+        'UnRestrictedView2.txt',
+    )) as f:
+        file_lines = iter(f.readlines())
+
+    folds_num = int(next(file_lines))
+    for fold_idx in range(folds_num):
+        people_num = int(next(file_lines))
+        folds_length.append(fold_length*2)
         
-            img1 = os.path.join(dataset_path, 'OriginalImages', name1+'.jpg')
-            landmark1 = load_landmark(os.path.join(dataset_path, 'FacialPoints', name1+'.txt'))
-            img1 = alignment(cv2.imread(img1, 1), landmark1)
-            img2 = os.path.join(dataset_path, 'OriginalImages', name2+'.jpg')
-            landmark2 = load_landmark(os.path.join(dataset_path, 'FacialPoints', name2+'.txt'))
-            img2 = alignment(cv2.imread(img2, 1), landmark2)
+        people_list = []
+        for i in range(people_num):
+            words = next(file_lines).split()
+            people_list.append((' '.join(words[:-2]), int(words[-2]), int(words[-1]),))
+        
+        for i in range(fold_length):
+            people = people_list[rng.randint(people_num)]
+            a, b = sample_2(people[1] + people[2])
+            yield get_img_name(people, a), get_img_name(people, b), 1
 
-            imglist = [img1, cv2.flip(img1, 1), img2, cv2.flip(img2, 1)]
-            for i in range(len(imglist)):
-                imglist[i] = imglist[i].transpose(2, 0, 1).reshape((1, 3, 112, 96))
-                imglist[i] = (imglist[i] - 127.5) / 128.
+        for i in range(fold_length):
+            p1, p2 = sample_2(people_num)
+            p1, p2 = people_list[p1], people_list[p2]
+            yield get_img_name(p1, rng.randint(p1[1]+p1[2])), get_img_name(p2, rng.randint(p2[1]+p2[2])), 0
 
-            img = np.vstack(imglist)
-            with torch.no_grad():
-                img = Variable(torch.from_numpy(img).float(), volatile=True).cuda()
-                output = net(img)
-            f = output.data
-            f1, f2 = f[0], f[2]
-            cosdistance = f1.dot(f2) / (f1.norm() * f2.norm() + 1e-5)
-            predicts.append((cosdistance, sameflag))
+
+def get_predicts(dataset_path, model_path, class_num=10574, folds_iter=resticted_fold_iter, cached=False):
+    if cached:
+        model_name = os.path.splitext(os.path.split(model_path)[1])[0]
+        feats_path = os.path.join(dataset_path, model_name+'.pkl')
+        if os.path.exists(feats_path):
+            predicts, folds_length = pickle.load(open(feats_path, 'rb'))
+            return predicts, folds_length
+    
+    predicts=[]
+    net = sphere20a(classnum=class_num)
+    net.load_state_dict(torch.load(model_path))
+    net.cuda()
+    net.eval()
+    net.feature = True
+
+    folds_length = []
+    for name1, name2, sameflag in folds_iter(dataset_path, folds_length):
+        img1 = os.path.join(dataset_path, 'OriginalImages', name1+'.jpg')
+        landmark1 = load_landmark(os.path.join(dataset_path, 'FacialPoints', name1+'.txt'))
+        img1 = alignment(cv2.imread(img1, 1), landmark1)
+        img2 = os.path.join(dataset_path, 'OriginalImages', name2+'.jpg')
+        landmark2 = load_landmark(os.path.join(dataset_path, 'FacialPoints', name2+'.txt'))
+        img2 = alignment(cv2.imread(img2, 1), landmark2)
+
+        imglist = [img1, cv2.flip(img1, 1), img2, cv2.flip(img2, 1)]
+        for i in range(len(imglist)):
+            imglist[i] = imglist[i].transpose(2, 0, 1).reshape((1, 3, 112, 96))
+            imglist[i] = (imglist[i] - 127.5) / 128.
+
+        img = np.vstack(imglist)
+        with torch.no_grad():
+            img = Variable(torch.from_numpy(img).float(), volatile=True).cuda()
+            output = net(img)
+        f = output.data
+        f1, f2 = f[0], f[2]
+        cosdistance = f1.dot(f2) / (f1.norm() * f2.norm() + 1e-5)
+        predicts.append((cosdistance, sameflag))
     predicts = np.array(predicts)
-    pickle.dump((predicts, folds_length), open(feats_path, 'wb'))
+    if cached:
+        pickle.dump((predicts, folds_length), open(feats_path, 'wb'))
     return predicts, folds_length
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='PyTorch sphereface wc')
-    parser.add_argument('--wc', default='datasets/WebCaricature/original_dataset', type=str)
-    parser.add_argument('--model','-m', default='codes/sphereface/sphere20a.pth', type=str)
-    args = parser.parse_args()
-
-    predicts, folds_length = get_predicts(args.wc, args.model)
-
+def eval(predicts, folds_length, output_file=sys.stdout):
     accuracy = []
     thd = []
     far3 = []
@@ -233,7 +278,23 @@ if __name__ == "__main__":
         far3.append(roc[0])
         far2.append(roc[1])
         auc.append(roc[2])
-    print('WCACC={:.4f} std={:.4f} thd={:.4f}'.format(np.mean(accuracy), np.std(accuracy), np.mean(thd)))
-    print('WCFAR3={:.4f} std={:.4f}'.format(np.mean(far3), np.std(far3)))
-    print('WCFAR2={:.4f} std={:.4f}'.format(np.mean(far2), np.std(far2)))
-    print('WCAUC={:.4f} std={:.4f}'.format(np.mean(auc), np.std(auc)))
+    print('WCACC={:.4f} std={:.4f} thd={:.4f}'.format(np.mean(accuracy), np.std(accuracy), np.mean(thd)), file=output_file)
+    print('WCFAR3={:.4f} std={:.4f}'.format(np.mean(far3), np.std(far3)), file=output_file)
+    print('WCFAR2={:.4f} std={:.4f}'.format(np.mean(far2), np.std(far2)), file=output_file)
+    print('WCAUC={:.4f} std={:.4f}'.format(np.mean(auc), np.std(auc)), file=output_file, flush=True)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='PyTorch sphereface wc')
+    parser.add_argument('--wc', default='datasets/WebCaricature/original_dataset', type=str)
+    parser.add_argument('--model','-m', default='codes/sphereface/sphere20a.pth', type=str)
+    parser.add_argument('--ipython', action='store_true')
+    args = parser.parse_args()
+
+    if args.ipython:
+        from IPython import embed; embed()
+        exit(0)
+
+    predicts, folds_length = get_predicts(args.wc, args.model)
+
+    eval(predicts, folds_length)
