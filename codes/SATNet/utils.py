@@ -53,11 +53,11 @@ def get_all_data_loaders(conf):
     train_loader_a = get_WCdata_loader(conf['data_root'], 'c', batch_size, True,
                                        new_size_a, height, width, num_workers, True)
     test_loader_a = get_WCdata_loader(conf['data_root'], 'c', batch_size, False,
-                                      width, height, width, num_workers, True)
+                                      new_size_a, height, width, num_workers, True)
     train_loader_b = get_WCdata_loader(conf['data_root'], 'p', batch_size, True,
                                        new_size_b, height, width, num_workers, True)
     test_loader_b = get_WCdata_loader(conf['data_root'], 'p', batch_size, False,
-                                      width, height, width, num_workers, True)
+                                      new_size_a, height, width, num_workers, True)
     # if 'data_root' in conf:
     #     train_loader_a = get_data_loader_folder(os.path.join(conf['data_root'], 'trainA'), batch_size, True,
     #                                           new_size_a, height, width, num_workers, True)
