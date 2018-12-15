@@ -23,7 +23,7 @@ class Trainer(nn.Module):
         self.gen_a = AdaINGen(hyperparameters['input_dim_a'], hyperparameters['gen'], name='gen_a')  # auto-encoder for domain a
         self.gen_b = AdaINGen(hyperparameters['input_dim_b'], hyperparameters['gen'], name='gen_b')  # auto-encoder for domain b
         self.dis_a = MsImageDis(hyperparameters['input_dim_a'], hyperparameters['dis'], name='dis_a')  # discriminator for domain a
-        self.dis_b = MsImageDis(hyperparameters['input_dim_b'], hyperparameters['dis'], name='dis_a')  # discriminator for domain b
+        self.dis_b = MsImageDis(hyperparameters['input_dim_b'], hyperparameters['dis'], name='dis_b')  # discriminator for domain b
         self.instancenorm = nn.InstanceNorm2d(512, affine=False)
         self.style_dim = hyperparameters['gen']['style_dim']
 
