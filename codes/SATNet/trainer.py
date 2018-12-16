@@ -10,7 +10,7 @@ import torchvision.utils as vutils
 from torch.autograd import Variable
 from torch.nn import functional as F
 
-from networks import AdaINGen, MsImageDis, sphere20a, AngleLoss
+from networks import AdaINGen, MsImageDis, sphere20a
 from utils import get_model_list, get_scheduler, vgg_preprocess, weights_init, sphereface_preprocess
 
 
