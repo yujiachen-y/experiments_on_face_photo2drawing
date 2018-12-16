@@ -33,7 +33,7 @@ class Trainer(nn.Module):
             self.sphereface.eval()
             for param in self.sphereface.parameters():
                 param.requires_grad = False
-            self.angle_loss = AngleLoss()
+            self.idt_criterion = nn.CrossEntropyLoss()
 
         # fix the noise used in sampling
         display_size = int(hyperparameters['display_size'])
@@ -138,7 +138,7 @@ class Trainer(nn.Module):
     def compute_idt_loss(self, img, lable, gen):
         img_sph = sphereface_preprocess(img)
         img_fea = self.sphereface(img_sph)
-        idt_loss = self.angle_loss(img_fea, lable)
+        idt_loss = self.idt_criterion(img_fea[0], lable)
         gen.total_count += 1
         gen.accepted_count += int(torch.sum(lable == torch.argmax(img_fea[0], dim=1)))
         return idt_loss
