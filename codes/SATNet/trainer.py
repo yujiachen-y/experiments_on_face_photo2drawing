@@ -10,7 +10,7 @@ import torchvision.utils as vutils
 from torch.autograd import Variable
 from torch.nn import functional as F
 
-from networks import AdaINGen, MsImageDis, sphere20a
+from networks import AdaINGen, MsImageDis, sphere20a, AngleLoss
 from utils import get_model_list, get_scheduler, vgg_preprocess, weights_init, sphereface_preprocess
 
 
@@ -30,10 +30,10 @@ class Trainer(nn.Module):
         if hyperparameters['sph_w'] != 0:
             self.sphereface = sphere20a(hyperparameters['sph']['classnum'])
             self.sphereface.load_state_dict(torch.load(hyperparameters['sph']['model_path']))
-            self.sphereface.feature = True
             self.sphereface.eval()
             for param in self.sphereface.parameters():
                 param.requires_grad = False
+            self.angle_loss = AngleLoss()
 
         # fix the noise used in sampling
         display_size = int(hyperparameters['display_size'])
@@ -108,8 +108,8 @@ class Trainer(nn.Module):
         self.loss_gen_vgg_b = self.compute_vgg_loss(self.vgg, x_ab, x_a) if hyperparameters['vgg_w'] > 0 else 0
         # domain-invariant identity loss
         self.sphereface.eval()
-        self.loss_gen_idt_a = self.compute_idt_loss(x_ab, x_a, hyperparameters['sph']) if hyperparameters['sph_w'] > 0 else 0
-        self.loss_gen_idt_b = self.compute_idt_loss(x_ba, x_b, hyperparameters['sph']) if hyperparameters['sph_w'] > 0 else 0
+        self.loss_gen_idt_a = self.compute_idt_loss(x_ab, y_a, self.gen_b) if hyperparameters['sph_w'] > 0 else 0
+        self.loss_gen_idt_b = self.compute_idt_loss(x_ba, y_b, self.gen_a) if hyperparameters['sph_w'] > 0 else 0
         # total loss
         self.loss_gen_total = hyperparameters['gan_w'] * self.loss_gen_adv_a + \
                               hyperparameters['gan_w'] * self.loss_gen_adv_b + \
@@ -135,12 +135,12 @@ class Trainer(nn.Module):
         target_fea = vgg(target_vgg)
         return torch.mean((self.instancenorm(img_fea) - self.instancenorm(target_fea)) ** 2)
 
-    def compute_idt_loss(self, img, target, config):
+    def compute_idt_loss(self, img, lable, gen):
         img_sph = sphereface_preprocess(img)
-        target_sph = sphereface_preprocess(target)
         img_fea = self.sphereface(img_sph)
-        target_fea = self.sphereface(target_sph)
-        idt_loss = torch.mean((self.instancenorm(img_fea) - self.instancenorm(target_fea)) ** 2)
+        idt_loss = self.angle_loss(img_fea, lable)
+        gen.total_count += 1
+        gen.accepted_count += int(torch.sum(lable == torch.argmax(img_fea[0], dim=1)))
         return idt_loss
 
     def yield_mode_sample(self, d_a, d_b, image_directory, iterations):

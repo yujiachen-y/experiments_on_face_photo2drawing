@@ -24,7 +24,7 @@ recon_s_w: 1                  # weight of style reconstruction loss
 recon_c_w: 1                  # weight of content reconstruction loss
 recon_x_cyc_w: 10             # weight of explicit style augmented cycle consistency loss
 vgg_w: 0                      # weight of domain-invariant perceptual loss
-sph_w: 10
+sph_w: 1
 
 # model options
 gen:
@@ -45,7 +45,6 @@ dis:
   pad_type: reflect           # padding type [zero/reflect]
 sph:
   classnum: 227
-  thd: 0.2875
   model_path: ./experiments/sphereface/outputs/init_1d741531e7a6424100e666465ba84a1a71a887d5/checkpoints/00011000.pth
 
 # data options

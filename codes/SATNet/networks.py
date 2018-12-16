@@ -126,6 +126,7 @@ class AdaINGen(nn.Module):
         self.mlp = MLP(style_dim, self.get_num_adain_params(self.dec), mlp_dim, 3, norm='none', activ=activ)
 
         self.gammas = [param for name, param in self.named_parameters() if 'gamma' in name and 'norm' not in name]
+        self.total_count, self.accepted_count = 0, 0
 
     def forward(self, images):
         # reconstruct an image
@@ -168,6 +169,8 @@ class AdaINGen(nn.Module):
     def get_info(self):
         return [
             (self.name+'_gamma_%d'%i, float(gamma)) for i, gamma in enumerate(self.gammas)
+        ] + [
+            (self.name+'acc', self.accepted_count / self.total_count)
         ]
 
 
@@ -645,6 +648,42 @@ class AngleLinear(nn.Module):
         phi_theta = phi_theta * xlen.view(-1,1)
         output = (cos_theta,phi_theta)
         return output # size=(B,Classnum,2)
+
+
+class AngleLoss(nn.Module):
+    def __init__(self, gamma=0):
+        super(AngleLoss, self).__init__()
+        self.gamma   = gamma
+        self.it = 0
+        self.LambdaMin = 5.0
+        self.LambdaMax = 1500.0
+        self.lamb = 1500.0
+
+    def forward(self, input, target):
+        self.it += 1
+        cos_theta,phi_theta = input
+        target = target.view(-1,1) #size=(B,1)
+
+        index = cos_theta.data * 0.0 #size=(B,Classnum)
+        index.scatter_(1,target.data.view(-1,1),1)
+        index = index.byte()
+        index = Variable(index)
+
+        self.lamb = max(self.LambdaMin,self.LambdaMax/(1+0.1*self.it ))
+        output = cos_theta * 1.0 #size=(B,Classnum)
+        output[index] -= cos_theta[index]*(1.0+0)/(1+self.lamb)
+        output[index] += phi_theta[index]*(1.0+0)/(1+self.lamb)
+
+        logpt = F.log_softmax(output)
+        logpt = logpt.gather(1,target)
+        logpt = logpt.view(-1)
+        pt = Variable(logpt.data.exp())
+
+        loss = -1 * (1-pt)**self.gamma * logpt
+        loss = loss.mean()
+
+        return loss
+
 
 ##################################################################################
 # Normalization layers
