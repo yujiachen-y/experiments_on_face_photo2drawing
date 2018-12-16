@@ -138,10 +138,9 @@ class Trainer(nn.Module):
     def compute_idt_loss(self, img, target, config):
         img_sph = sphereface_preprocess(img)
         target_sph = sphereface_preprocess(target)
-        img_idt = self.sphereface(img_sph)
-        target_idt = self.sphereface(target_sph)
-        cosdistance = torch.sum(img_idt * target_idt) / (img_idt.norm() * target_idt.norm() + 1e-8)
-        idt_loss = F.relu(config['thd'] - cosdistance)
+        img_fea = self.sphereface(img_sph)
+        target_fea = self.sphereface(target_sph)
+        idt_loss = torch.mean((self.instancenorm(img_fea) - self.instancenorm(target_fea)) ** 2)
         return idt_loss
 
     def yield_mode_sample(self, d_a, d_b, image_directory, iterations):

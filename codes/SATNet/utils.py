@@ -309,6 +309,7 @@ def vgg_preprocess(batch):
     return batch
 
 def sphereface_preprocess(batch):
+    batch = batch.clamp(-1, 1)
     (r, g, b) = torch.chunk(batch, 3, dim = 1)
     batch = torch.cat((b, g, r), dim = 1) # convert RGB to BGR
     batch = (batch + 1) * 255 * 0.5 # [-1, 1] -> [0, 255]
