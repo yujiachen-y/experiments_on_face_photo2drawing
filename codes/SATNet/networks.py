@@ -41,8 +41,8 @@ class MsImageDis(nn.Module):
         for i in range(self.n_layer - 1):
             cnn_x += [Conv2dBlock(dim, dim * 2, 4, 2, 1, norm=self.norm, activation=self.activ, pad_type=self.pad_type)]
             dim *= 2
-        # Self Attention layer
-        cnn_x += [SelfAttention(dim, norm=self.norm)]
+        # # Self Attention layer
+        # cnn_x += [SelfAttention(dim, norm=self.norm)]
         cnn_x += [nn.Conv2d(dim, 1, 1, 1, 0)]
         cnn_x = nn.Sequential(*cnn_x)
         return cnn_x
@@ -167,12 +167,13 @@ class AdaINGen(nn.Module):
         return num_adain_params
 
     def get_info(self):
-        return [
+        ret = [
             (self.name+'_gamma_%d'%i, float(gamma)) for i, gamma in enumerate(self.gammas)
         ] + [
             (self.name+'_acc', self.accepted_count / self.total_count)
         ]
         self.accepted_count, self.total_count = 0, 0
+        return ret
 
 
 class VAEGen(nn.Module):
@@ -242,9 +243,9 @@ class ContentEncoder(nn.Module):
             dim *= 2
         # residual blocks
         self.model += [ResBlocks(n_res, dim, norm=norm, activation=activ, pad_type=pad_type)]
-        # Self Attention layer with ResBlock
-        self.model += [SelfAttention(dim, norm='sn')]
-        self.model += [ResBlock(dim, norm=norm, activation=activ, pad_type=pad_type)]
+        # # Self Attention layer with ResBlock
+        # self.model += [SelfAttention(dim, norm='sn')]
+        # self.model += [ResBlock(dim, norm=norm, activation=activ, pad_type=pad_type)]
         self.model = nn.Sequential(*self.model)
         self.output_dim = dim
 
@@ -258,9 +259,9 @@ class Decoder(nn.Module):
         self.model = []
         # AdaIN residual blocks
         self.model += [ResBlocks(n_res, dim, res_norm, activ, pad_type=pad_type)]
-        # Self Attention layer with ResBlock
-        self.model += [SelfAttention(dim, norm='sn')]
-        self.model += [ResBlock(dim, norm=res_norm, activation=activ, pad_type=pad_type)]
+        # # Self Attention layer with ResBlock
+        # self.model += [SelfAttention(dim, norm='sn')]
+        # self.model += [ResBlock(dim, norm=res_norm, activation=activ, pad_type=pad_type)]
         # upsampling blocks
         for i in range(n_upsample):
             self.model += [nn.Upsample(scale_factor=2),
