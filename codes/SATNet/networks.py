@@ -170,8 +170,9 @@ class AdaINGen(nn.Module):
         return [
             (self.name+'_gamma_%d'%i, float(gamma)) for i, gamma in enumerate(self.gammas)
         ] + [
-            (self.name+'acc', self.accepted_count / self.total_count)
+            (self.name+'_acc', self.accepted_count / self.total_count)
         ]
+        self.accepted_count, self.total_count = 0, 0
 
 
 class VAEGen(nn.Module):
