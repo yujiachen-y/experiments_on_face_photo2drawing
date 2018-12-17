@@ -54,6 +54,6 @@ num_workers: 4                              # number of data loading threads
 new_size: 200                               # first resize the shortest image side to this size
 crop_image_height: 224                      # random crop image of this height
 crop_image_width: 192                       # random crop image of this width
-data_root: ./datasets/WebCaricature/frontalization_dataset_v004    # dataset folder location
+data_root: ./datasets/WebCaricature/BIG_ENOUGH_DATASET    # dataset folder location
 afid_path: ./datasets/WebCaricature/frontalization_dataset_v003/precaluC.npz
 bfid_path: ./datasets/WebCaricature/frontalization_dataset_v003/precaluP.npz
