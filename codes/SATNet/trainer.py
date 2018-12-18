@@ -27,14 +27,6 @@ class Trainer(nn.Module):
         self.instancenorm = nn.InstanceNorm2d(512, affine=False)
         self.style_dim = hyperparameters['gen']['style_dim']
 
-        if hyperparameters['sph_w'] != 0:
-            self.sphereface = sphere20a(hyperparameters['sph']['classnum'])
-            self.sphereface.load_state_dict(torch.load(hyperparameters['sph']['model_path']))
-            self.sphereface.feature = True
-            self.sphereface.eval()
-            for param in self.sphereface.parameters():
-                param.requires_grad = False
-
         # fix the noise used in sampling
         display_size = int(hyperparameters['display_size'])
         self.s_a = torch.randn(display_size, self.style_dim, 1, 1).cuda()
@@ -56,6 +48,15 @@ class Trainer(nn.Module):
         self.apply(weights_init(hyperparameters['init']))
         self.dis_a.apply(weights_init('gaussian'))
         self.dis_b.apply(weights_init('gaussian'))
+
+        # load sphereface weight if need
+        if hyperparameters['sph_w'] != 0:
+            self.sphereface = sphere20a(hyperparameters['sph']['classnum'])
+            self.sphereface.load_state_dict(torch.load(hyperparameters['sph']['model_path']))
+            self.sphereface.feature = True
+            self.sphereface.eval()
+            for param in self.sphereface.parameters():
+                param.requires_grad = False
 
     def recon_criterion(self, input, target):
         return torch.mean(torch.abs(input - target))
