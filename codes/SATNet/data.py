@@ -5,6 +5,7 @@ import json
 import os
 import os.path
 
+import numpy as np
 import torch.utils.data as data
 from PIL import Image
 
@@ -91,7 +92,7 @@ class ImageLabelFileInfo(data.Dataset):
 
 
 class WCDataset(data.Dataset):
-    def __init__(self, dataset_path, is_train, data_type, transform=None, loader=default_loader):
+    def __init__(self, dataset_path, is_train, data_type, clear_mode=False, transform=None, loader=default_loader):
         self.transform = transform
         self.loader = loader
         training_file = os.path.join(
@@ -110,15 +111,21 @@ class WCDataset(data.Dataset):
                 class_name = ' '.join(words[:-2])
                 self.class_names.append(class_name)
                 if data_type == 'c':
-                    self.images += [
-                        (os.path.join(dataset_path, 'OriginalImages', class_name, 'C%05d.jpg'%(j+1)), i) for j in range(int(words[-2]))
-                    ]
+                    file_string = 'C%05d'
+                    img_num = int(words[-2])
                 elif data_type == 'p':
-                    self.images += [
-                        (os.path.join(dataset_path, 'OriginalImages', class_name, 'P%05d.jpg'%(j+1)), i) for j in range(int(words[-1]))
-                    ]
+                    file_string = 'P%05d'
+                    img_num = int(words[-1])
                 else:
-                    assert 0, 'only support data_type in c|p'
+                    assert 0, 'only support data_type in {c|p}'
+                
+                for j in range(img_num):
+                    if clear_mode:
+                        landmark = load_landmark(os.path.join(dataset_path, 'FacialPoints', class_name, file_string%(j+1)+'.txt'))
+                        if not is_corrected_landmark(landmark):
+                            continue
+
+                    self.images += [(os.path.join(dataset_path, 'OriginalImages', class_name, file_string%(j+1)+'.jpg'), i)]
 
     def __len__(self):
         return len(self.images)
@@ -129,6 +136,94 @@ class WCDataset(data.Dataset):
         if self.transform is not None:
             img = self.transform(img)
         return img, label
+
+
+def load_landmark(landmark_file_path):
+    return [
+        tuple(map(float, landmark.strip().split(' '))) for landmark in open(landmark_file_path).readlines()
+    ]
+
+
+def check_landmark_position(landmark):
+    landmark = np.array(landmark)
+
+    # check 1, 2, 3, 4
+    if not (landmark[0, 1] <= np.min(landmark[0:4, 1]) and\
+            landmark[1, 0] <= np.min(landmark[0:4, 0]) and\
+            landmark[2, 1] >= np.max(landmark[0:4, 1]) and\
+            landmark[3, 0] >= np.max(landmark[0:4, 0])):
+        return False
+
+    # check 5, 6, 7, 8
+    if not (landmark[4, 0] < landmark[5, 0] < landmark[6, 0] < landmark[7, 0]):
+        return False
+
+    # check 9, 10, 11, 12
+    if not (landmark[8, 0] < landmark[9, 0] < landmark[10, 0] < landmark[11, 0]):
+        return False
+
+    # check 13, 14, 15, 16, 17
+    if not (landmark[14, 0] < np.min((landmark[12, 0], landmark[13, 0], landmark[15, 0],)) <\
+                              np.max((landmark[12, 0], landmark[13, 0], landmark[15, 0],)) <\
+                              landmark[16, 0] and\
+            landmark[12, 1] < np.min(landmark[13:17, 1])):
+        return False
+
+    # check horizontal
+    if not (landmark[1, 0] < np.min(landmark[12:16, 0]) < landmark[3, 0]):
+        return False
+
+    # check vertical
+    if not (landmark[0, 1] < np.min(landmark[4:8, 1]) < np.max(landmark[4:8, 1]) <\
+                             np.min(landmark[8:12, 1]) < np.max(landmark[8:12, 1]) <\
+                             np.min(landmark[12:16, 1]) < np.max(landmark[12:16, 1]) < landmark[2, 1]):
+        return False
+    
+    return True
+
+
+def is_corrected_landmark(landmark, offset=2, corrected_rate=0.10, resize_factor=2):
+    def calc_eye_point(landmark, is_right_eye=0):
+        offset = is_right_eye * 2
+        t = np.array([
+            landmark[8+offset],
+            landmark[9+offset],
+        ])
+        return t.mean(axis=0)
+    
+    def get_img5point(landmark):
+        return np.array([
+            calc_eye_point(landmark, is_right_eye=0),       # Left eye
+            calc_eye_point(landmark, is_right_eye=1),       # Right eye
+            landmark[12],                                   # Nose tip
+            landmark[14],                                   # Mouth left corner
+            landmark[16],                                   # Mouth right corner
+        ])
+
+    if not check_landmark_position(landmark):
+        return False
+
+    ref_pts = [
+        [30.2946+offset, 51.6963+offset],
+        [65.5318+offset, 51.5014+offset],
+        [48.0252+offset, 71.7366+offset],
+        [33.5493+offset, 92.3655+offset],
+        [62.7299+offset, 92.2041+offset],
+    ]
+    w, h = (96+offset*2, 112+offset*2)
+    landmark = get_img5point(landmark)
+    w, h = w * resize_factor, h * resize_factor
+    for i, ld in enumerate(ref_pts):
+        ref_pts[i] = [ld[0]*resize_factor, ld[1]*resize_factor]
+
+    for ld0, ld1 in zip(ref_pts, landmark):
+        if not (0 <= ld1[0] < w and 0 <= ld1[1] < h):
+            return False
+        ld0, ld1 = np.array(ld0), np.array(ld1)
+        if np.sum((ld0 - ld1) ** 2) * np.pi > w * h * corrected_rate:
+            return False
+
+    return True
 
 
 ###############################################################################

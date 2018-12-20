@@ -49,12 +49,13 @@ sph:
   model_path: ./experiments/sphereface/outputs/init_1d741531e7a6424100e666465ba84a1a71a887d5/checkpoints/00011000.pth
 
 # data options
+clear_mode: true
 input_dim_a: 3                              # number of image channels [1/3]
 input_dim_b: 3                              # number of image channels [1/3]
 num_workers: 4                              # number of data loading threads
 new_size: 100                               # first resize the shortest image side to this size
 crop_image_height: 112                      # random crop image of this height
 crop_image_width: 96                        # random crop image of this width
-data_root: ./datasets/WebCaricature/frontalization_dataset_v004    # dataset folder location
+data_root: ./datasets/WebCaricature/frontalization_dataset_v005    # dataset folder location
 afid_path: ./datasets/WebCaricature/frontalization_dataset_v003/precaluC.npz
 bfid_path: ./datasets/WebCaricature/frontalization_dataset_v003/precaluP.npz

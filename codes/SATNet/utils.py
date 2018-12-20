@@ -49,15 +49,16 @@ def get_all_data_loaders(conf):
         new_size_b = conf['new_size_b']
     height = conf['crop_image_height']
     width = conf['crop_image_width']
+    clear_mode = conf['clear_mode']
 
     train_loader_a = get_WCdata_loader(conf['data_root'], 'c', batch_size, True,
-                                       new_size_a, height, width, num_workers, True)
+                                       new_size_a, height, width, num_workers, True, clear_mode=clear_mode)
     test_loader_a = get_WCdata_loader(conf['data_root'], 'c', batch_size, False,
-                                      new_size_a, height, width, num_workers, True)
+                                      new_size_a, height, width, num_workers, True, clear_mode=clear_mode)
     train_loader_b = get_WCdata_loader(conf['data_root'], 'p', batch_size, True,
-                                       new_size_b, height, width, num_workers, True)
+                                       new_size_b, height, width, num_workers, True, clear_mode=clear_mode)
     test_loader_b = get_WCdata_loader(conf['data_root'], 'p', batch_size, False,
-                                      new_size_a, height, width, num_workers, True)
+                                      new_size_b, height, width, num_workers, True, clear_mode=clear_mode)
     # if 'data_root' in conf:
     #     train_loader_a = get_data_loader_folder(os.path.join(conf['data_root'], 'trainA'), batch_size, True,
     #                                           new_size_a, height, width, num_workers, True)
@@ -131,7 +132,7 @@ def get_data_loader_info(input_folder, batch_size, train, new_size=None,
 
 
 def get_WCdata_loader(dataset_path, data_type, batch_size, train, new_size=None,
-                      height=112, width=96, num_workers=4, crop=True):
+                      height=112, width=96, num_workers=4, crop=True, clear_mode=False):
     transform_list = [transforms.ToTensor(),
                       transforms.Normalize((0.5, 0.5, 0.5),
                                            (0.5, 0.5, 0.5))]
@@ -139,7 +140,7 @@ def get_WCdata_loader(dataset_path, data_type, batch_size, train, new_size=None,
     transform_list = [transforms.Resize(new_size)] + transform_list if new_size is not None else transform_list
     transform_list = [transforms.RandomHorizontalFlip()] + transform_list if train else transform_list
     transform = transforms.Compose(transform_list)
-    dataset = WCDataset(dataset_path, train, data_type, transform=transform)
+    dataset = WCDataset(dataset_path, train, data_type, clear_mode=clear_mode, transform=transform)
     loader = DataLoader(dataset=dataset, batch_size=batch_size, shuffle=train, drop_last=True, num_workers=num_workers)
     return loader
 

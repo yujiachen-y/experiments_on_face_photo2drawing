@@ -73,7 +73,7 @@ def warp_img(img, landmark, image_type):
     return img, landmark
 
 
-def alignment(src_img, src_landmark):
+def alignment(src_img, src_landmark, resize_factor=2):
     offset = 2
     ref_pts = [
         [30.2946+offset, 51.6963+offset],
@@ -82,12 +82,13 @@ def alignment(src_img, src_landmark):
         [33.5493+offset, 92.3655+offset],
         [62.7299+offset, 92.2041+offset],
     ]
-    crop_size = (96+offset*2, 112+offset)
+    crop_size = (96+offset*2, 112+offset*2)
     src_pts = get_img5point(src_landmark)
     src_pts = np.array(src_pts).reshape(5,2)
 
     s = np.array(src_pts).astype(np.float32)
-    r = np.array(ref_pts).astype(np.float32)
+    r = np.array(ref_pts).astype(np.float32) * resize_factor
+    crop_size = (crop_size[0]*resize_factor, crop_size[1]*resize_factor)
 
     tfm = get_similarity_transform_for_cv2(s, r)
     face_img = cv2.warpAffine(src_img, tfm, crop_size)
