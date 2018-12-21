@@ -91,6 +91,78 @@ class ImageLabelFileInfo(data.Dataset):
         return len(self.imgs)
 
 
+def sample_2(num):
+    a = np.random.randint(num)
+    b = (a + 1 + np.random.randint(num-1)) % num
+    return a, b
+
+
+class WCPairDataset(data.Dataset):
+    def __init__(self, dataset_path, clear_mode=False, transform=None, loader=default_loader):
+        self.transform = transform
+        self.loader = loader
+        training_file = os.path.join(
+            dataset_path,
+            'EvaluationProtocols',
+            'FaceVerification',
+            'UnRestricted',
+            'UnRestrictedView1_DevTrain.txt'
+        )
+        with open(training_file) as f:
+            self.class_num = int(f.readline())
+            self.class_names = []
+            self.c_class_images = {}
+            self.p_class_images = {}
+            for i in range(self.class_num):
+                words = f.readline().split()
+                class_name = ' '.join(words[:-2])
+                self.class_names.append(class_name)
+                for data_type in ('c', 'p',):
+                    if data_type == 'c':
+                        file_string = 'C%05d'
+                        img_num = int(words[-2])
+                    elif data_type == 'p':
+                        file_string = 'P%05d'
+                        img_num = int(words[-1])
+                    else:
+                        assert 0, 'only support data_type in {c|p}'
+
+                    images = []
+                    for j in range(img_num):
+                        if clear_mode:
+                            landmark = load_landmark(os.path.join(dataset_path, 'FacialPoints', class_name, file_string%(j+1)+'.txt'))
+                            if not is_corrected_landmark(landmark):
+                                continue
+                        images += [(os.path.join(dataset_path, 'OriginalImages', class_name, file_string%(j+1)+'.jpg'), i)]
+
+                    if data_type == 'c':
+                        self.c_class_images[class_name] = images
+                    else:
+                        self.p_class_images[class_name] = images
+
+    def __len__(self):
+        return 10000
+
+    def __getitem__(self, idx):
+        if idx % 2 == 0:
+            c1, c2 = sample_2(len(self.class_names))
+            c1 = self.class_names[c1]
+            c2 = self.class_names[c2]
+        else:
+            c = np.random.randint(self.class_num)
+            c1 = self.class_names[c]
+            c2 = self.class_names[c]
+        result1 = np.random.randint(len(self.c_class_images[c1]))
+        result2 = np.random.randint(len(self.p_class_images[c2]))
+        img1, label1 = self.c_class_images[c1][result1]
+        img2, label2 = self.p_class_images[c2][result2]
+        img1, img2 = self.loader(img1), self.loader(img2)
+        if self.transform is not None:
+            img1 = self.transform(img1)
+            img2 = self.transform(img2)
+        return (img1, label1), (img2, label2)
+
+
 class WCDataset(data.Dataset):
     def __init__(self, dataset_path, is_train, data_type, clear_mode=False, transform=None, loader=default_loader):
         self.transform = transform

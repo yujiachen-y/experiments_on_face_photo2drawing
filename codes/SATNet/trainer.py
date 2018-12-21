@@ -91,6 +91,9 @@ class Trainer(nn.Module):
         # decode again (if needed)
         x_aba = self.gen_a.decode(c_a_recon, s_a_prime) if hyperparameters['recon_x_cyc_w'] > 0 else None
         x_bab = self.gen_b.decode(c_b_recon, s_b_prime) if hyperparameters['recon_x_cyc_w'] > 0 else None
+        # decode (swap style code)
+        x_ab_prime = self.gen_b.decode(c_a, s_b_prime) if hyperparameters['sup_w'] > 0 and y_a == y_b else None
+        x_ba_prime = self.gen_a.decode(c_b, s_a_prime) if hyperparameters['sup_w'] > 0 and y_a == y_b else None
 
         # reconstruction loss
         self.loss_gen_recon_x_a = self.recon_criterion(x_a_recon, x_a)
@@ -111,6 +114,9 @@ class Trainer(nn.Module):
         self.sphereface.eval()
         self.loss_gen_idt_a = self.compute_idt_loss(x_ab, x_a, hyperparameters['sph']) if hyperparameters['sph_w'] > 0 else 0
         self.loss_gen_idt_b = self.compute_idt_loss(x_ba, x_b, hyperparameters['sph']) if hyperparameters['sph_w'] > 0 else 0
+        # supervised loss
+        self.a_supervised_loss = self.recon_criterion(x_ba_prime, x_a) if hyperparameters['sup_w'] > 0 and y_a == y_b else 0
+        self.b_suprrvised_loss = self.recon_criterion(x_ab_prime, x_b) if hyperparameters['sup_w'] > 0 and y_a == y_b else 0
         # total loss
         self.loss_gen_total = hyperparameters['gan_w'] * self.loss_gen_adv_a + \
                               hyperparameters['gan_w'] * self.loss_gen_adv_b + \
@@ -124,6 +130,8 @@ class Trainer(nn.Module):
                               hyperparameters['recon_x_cyc_w'] * self.loss_gen_cycrecon_x_b + \
                               hyperparameters['sph_w'] * self.loss_gen_idt_a + \
                               hyperparameters['sph_w'] * self.loss_gen_idt_b + \
+                              hyperparameters['sup_w'] * self.a_supervised_loss + \
+                              hyperparameters['sup_w'] * self.b_suprrvised_loss + \
                               hyperparameters['vgg_w'] * self.loss_gen_vgg_a + \
                               hyperparameters['vgg_w'] * self.loss_gen_vgg_b
         self.loss_gen_total.backward()

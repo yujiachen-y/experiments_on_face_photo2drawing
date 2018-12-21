@@ -25,6 +25,7 @@ recon_c_w: 1                  # weight of content reconstruction loss
 recon_x_cyc_w: 10             # weight of explicit style augmented cycle consistency loss
 vgg_w: 0                      # weight of domain-invariant perceptual loss
 sph_w: 10
+sup_w: 1
 
 # model options
 gen:

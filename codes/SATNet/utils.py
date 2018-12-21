@@ -17,7 +17,7 @@ from torch.utils.data import DataLoader
 from torch.utils.serialization import load_lua
 from torchvision import transforms
 
-from data import ImageFilelist, ImageFolder, ImageLabelFileInfo, WCDataset
+from data import ImageFilelist, ImageFolder, ImageLabelFileInfo, WCDataset, WCPairDataset
 
 # Methods
 # get_all_data_loaders      : primary data loader interface (load trainA, testA, trainB, testB)
@@ -59,6 +59,8 @@ def get_all_data_loaders(conf):
                                        new_size_b, height, width, num_workers, True, clear_mode=clear_mode)
     test_loader_b = get_WCdata_loader(conf['data_root'], 'p', batch_size, False,
                                       new_size_b, height, width, num_workers, True, clear_mode=clear_mode)
+    combine_loader = get_combine_loader(conf['data_root'], batch_size, True, new_size_a,
+                                        height, width, num_workers, True, clear_mode=clear_mode)
     # if 'data_root' in conf:
     #     train_loader_a = get_data_loader_folder(os.path.join(conf['data_root'], 'trainA'), batch_size, True,
     #                                           new_size_a, height, width, num_workers, True)
@@ -86,7 +88,7 @@ def get_all_data_loaders(conf):
     #                                             new_size_b, height, width, num_workers, True)
     #     test_loader_b = get_data_loader_list(conf['data_folder_test_b'], conf['data_list_test_b'], batch_size, False,
     #                                             new_size_b, new_size_b, new_size_b, num_workers, True)
-    return train_loader_a, train_loader_b, test_loader_a, test_loader_b
+    return train_loader_a, train_loader_b, test_loader_a, test_loader_b, combine_loader
 
 
 def get_data_loader_list(root, file_list, batch_size, train, new_size=None,
@@ -141,6 +143,20 @@ def get_WCdata_loader(dataset_path, data_type, batch_size, train, new_size=None,
     transform_list = [transforms.RandomHorizontalFlip()] + transform_list if train else transform_list
     transform = transforms.Compose(transform_list)
     dataset = WCDataset(dataset_path, train, data_type, clear_mode=clear_mode, transform=transform)
+    loader = DataLoader(dataset=dataset, batch_size=batch_size, shuffle=train, drop_last=True, num_workers=num_workers)
+    return loader
+
+
+def get_combine_loader(dataset_path, batch_size, train, new_size=None,
+                      height=112, width=96, num_workers=4, crop=True, clear_mode=False):
+    transform_list = [transforms.ToTensor(),
+                      transforms.Normalize((0.5, 0.5, 0.5),
+                                           (0.5, 0.5, 0.5))]
+    transform_list = [transforms.RandomCrop((height, width))] + transform_list if crop else transform_list
+    transform_list = [transforms.Resize(new_size)] + transform_list if new_size is not None else transform_list
+    transform_list = [transforms.RandomHorizontalFlip()] + transform_list if train else transform_list
+    transform = transforms.Compose(transform_list)
+    dataset = WCPairDataset(dataset_path, clear_mode=clear_mode, transform=transform)
     loader = DataLoader(dataset=dataset, batch_size=batch_size, shuffle=train, drop_last=True, num_workers=num_workers)
     return loader
 
