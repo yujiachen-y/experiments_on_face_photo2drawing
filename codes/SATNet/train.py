@@ -51,7 +51,7 @@ def main(opts, yield_mode=False):
     # Start training
     iterations = trainer.resume(checkpoint_directory, hyperparameters=config) if opts.resume else 0
     while True:
-        for it, (images_a, labels_a), (images_b, labels_b) in enumerate(zip(train_loader_a, train_loader_b)):
+        for it, ((images_a, labels_a), (images_b, labels_b)) in enumerate(zip(train_loader_a, train_loader_b)):
             trainer.update_learning_rate()
             images_a, images_b = images_a.cuda().detach(), images_b.cuda().detach()
             labels_a, labels_b = labels_a.cuda().detach(), labels_b.cuda().detach() 
