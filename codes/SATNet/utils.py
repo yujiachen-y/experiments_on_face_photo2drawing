@@ -325,7 +325,10 @@ def vgg_preprocess(batch):
     batch = batch.sub(Variable(mean)) # subtract mean
     return batch
 
+downsample = nn.AvgPool2d(3, stride=2, padding=[1, 1], count_include_pad=False)
 def sphereface_preprocess(batch):
+    if batch.shape[2] == 224:
+        batch = downsample(batch)
     (r, g, b) = torch.chunk(batch, 3, dim = 1)
     batch = torch.cat((b, g, r), dim = 1) # convert RGB to BGR
     batch = (batch + 1) * 255 * 0.5 # [-1, 1] -> [0, 255]
