@@ -126,6 +126,7 @@ class AdaINGen(nn.Module):
         self.mlp = MLP(style_dim, self.get_num_adain_params(self.dec), mlp_dim, 3, norm='none', activ=activ)
 
         self.gammas = [param for name, param in self.named_parameters() if 'gamma' in name and 'norm' not in name]
+        self.total_count, self.accepted_count = 0, 0
 
     def forward(self, images):
         # reconstruct an image
@@ -166,9 +167,13 @@ class AdaINGen(nn.Module):
         return num_adain_params
 
     def get_info(self):
-        return [
+        ret = [
             (self.name+'_gamma_%d'%i, float(gamma)) for i, gamma in enumerate(self.gammas)
+        ] + [
+            (self.name+'_acc', self.accepted_count / self.total_count)
         ]
+        self.accepted_count, self.total_count = 0, 0
+        return ret
 
 
 class VAEGen(nn.Module):
@@ -588,9 +593,9 @@ class sphere20a(nn.Module):
         x = self.relu4_1(self.conv4_1(x))
         x = x + self.relu4_3(self.conv4_3(self.relu4_2(self.conv4_2(x))))
 
+        if self.feature: return x
         x = x.view(x.size(0),-1)
         x = self.fc5(x)
-        if self.feature: return x
 
         x = self.fc6(x)
         return x
@@ -645,6 +650,7 @@ class AngleLinear(nn.Module):
         phi_theta = phi_theta * xlen.view(-1,1)
         output = (cos_theta,phi_theta)
         return output # size=(B,Classnum,2)
+
 
 ##################################################################################
 # Normalization layers

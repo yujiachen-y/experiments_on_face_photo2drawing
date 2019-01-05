@@ -27,6 +27,7 @@ class Trainer(nn.Module):
         self.instancenorm = nn.InstanceNorm2d(512, affine=False)
         self.style_dim = hyperparameters['gen']['style_dim']
 
+
         # fix the noise used in sampling
         display_size = int(hyperparameters['display_size'])
         self.s_a = torch.randn(display_size, self.style_dim, 1, 1).cuda()
@@ -144,13 +145,12 @@ class Trainer(nn.Module):
         target_fea = vgg(target_vgg)
         return torch.mean((self.instancenorm(img_fea) - self.instancenorm(target_fea)) ** 2)
 
-    def compute_idt_loss(self, img, target, config):
+    def compute_idt_loss(self, img, lable, gen):
         img_sph = sphereface_preprocess(img)
-        target_sph = sphereface_preprocess(target)
-        img_idt = self.sphereface(img_sph)
-        target_idt = self.sphereface(target_sph)
-        cosdistance = torch.sum(img_idt * target_idt) / (img_idt.norm() * target_idt.norm() + 1e-8)
-        idt_loss = F.relu(config['thd'] - cosdistance)
+        img_fea = self.sphereface(img_sph)
+        idt_loss = self.idt_criterion(img_fea[0], lable)
+        gen.total_count += 1
+        gen.accepted_count += int(torch.sum(lable == torch.argmax(img_fea[0], dim=1)))
         return idt_loss
 
     def yield_mode_sample(self, d_a, d_b, image_directory, iterations):
