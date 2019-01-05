@@ -18,5 +18,6 @@ from django.urls import path, include
 
 urlpatterns = [
     path('datasetviewer/', include('datasetviewer.urls')),
+    path('stylized_face/', include('stylized_face.urls')),
     path('admin/', admin.site.urls),
 ]
