@@ -25,7 +25,7 @@
 | VGG-Eye | 19.24±1.95 | 40.88±2.23 | 0.898±0.007 |
 | **SphereFace-fine-tuned** | **94.58±3.99** | **96.82±2.50** | **0.996±0.004** |
 
-[预训练权重](https://drive.google.com/open?id=1esOigCk0lCPM8ZE3dSS3zJ_5oJ4wTq0Y)
+[微调后的SphereFace权重](https://drive.google.com/open?id=1esOigCk0lCPM8ZE3dSS3zJ_5oJ4wTq0Y)
 
 目前的人脸识别的loss就是简单的hinge形式，即 L = max(0, threshold - dist)，自己认为可以试的点有参照Knowledge Distillation的方法，生成图像要和原图像在高维空间中的某个特征一致，同时用一个类似T的参数控制学习的强度。
 
