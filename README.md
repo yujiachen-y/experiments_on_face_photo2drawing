@@ -17,6 +17,7 @@
 为了更好地保留图像翻译结果中的身份特征，本项目采用了人脸识别网络对训练的网络进行指导。
 
 本项目采用了来自[sphereface_pytorch](https://github.com/clcarwin/sphereface_pytorch)的预训练权重，并针对[WebCaricature数据集](https://cs.nju.edu.cn/rl/WebCaricature.htm)进行了微调。得到了相对于[WebCaricature论文](https://arxiv.org/abs/1703.03230)中更优的结果，见下表：
+
 | 方法 | FAR=0.1%(%) | FAR=1%(%) | AUC |
 |------|-------------|-----------|-----|
 | SIFT-Land | 4.43±0.82 | 15.24±2.03 | 0.780±0.017 |
